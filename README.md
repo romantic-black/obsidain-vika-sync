@@ -12,8 +12,8 @@
 - 然后就可以用了
 
 ## 目前的功能
-现在只能同步和更新，对frontmatter不会修改
+更新或创建一个条目，并更新笔记本身的frontmatter
 
 ## TODO
-- 添加frontmatter的修改功能
+- 添加批量处理功能
 - 添加自定义的field
