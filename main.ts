@@ -55,6 +55,21 @@ export default class MyPlugin extends Plugin {
 				this.ob.updateAllRecord()
 		}
 		});
+		this.addCommand({
+			id: 'vika-sync-delete-record',
+			name: 'Delete Record',
+			callback: () => {
+				this.ob.deleteRecordAndThisPage()
+		}
+		});
+		this.addCommand({
+			id: 'vika-sync-get-record',
+			name: 'Get Record',
+			callback: () => {
+				this.ob.recoverFromRecord().then(res=> {
+					res?.success?new Notice("Record recovered"):new Notice("Record recovered failed");
+		})}});
+
 		this.addSettingTab(new SettingTab(this.app, this));
 	}
 
@@ -71,6 +86,12 @@ export default class MyPlugin extends Plugin {
 
 	async saveSettings() {
 		await this.saveData(this.settings);
+		try{
+			await this.loadSettings();
+		}
+		catch (e) {
+			console.log(e);
+		}
 	}
 }
 

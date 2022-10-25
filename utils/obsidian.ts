@@ -6,6 +6,7 @@ import { readdirSync, statSync, readFileSync, writeFileSync, existsSync, mkdirSy
 import { execSync, exec } from "child_process";
 import { MyVika } from "utils/vika";
 import { ICreateRecordsResponseData, IHttpErrorResponse, IHttpResponse } from '@vikadata/vika';
+import { stringify } from 'querystring';
 
 export {MyNote, MyObsidian};
 
@@ -13,8 +14,8 @@ export {MyNote, MyObsidian};
 interface BasicFields {
     "标题": string;
     "文件夹": string;
-    "标签": Array<string>;
-    "别名": Array<string>;
+    "tags": Array<string>;
+    "aliases": Array<string>;
     "内容": string;
     "出链": Array<string>;
     "入链": Array<string>;
@@ -58,7 +59,24 @@ class MyObsidian {
         return res;
     }
 
-    async deleteRecordInThisPage() {
+    async deleteRecordAndThisPage() {
+        let file: TFile|null = this.app.workspace.getActiveFile();
+        if (!file) {
+            return null;
+        }
+        let note: MyNote = new MyNote(this.app, file, this.vika);
+        let res = await note.deleteRecord();
+        return res;
+    }
+
+    async recoverFromRecord() {
+        let file: TFile|null = this.app.workspace.getActiveFile();
+        if (!file) {
+            return null;
+        }
+        let note: MyNote = new MyNote(this.app, file, this.vika);
+        let res = await note.getRecord();
+        return res;
     }
 
     async updateRecordInThisFolder() {
@@ -127,8 +145,8 @@ class MyNote {
         let data: BasicFields = {
                 "标题": this.title,
                 "文件夹": this.folder,
-                "标签": this.tags,
-                "别名": this.aliases,
+                "tags": this.tags,
+                "aliases": this.aliases,
                 "内容": this.content,
                 "出链": [],
                 "入链": [],
@@ -161,6 +179,54 @@ class MyNote {
         }
     }
 
+    async deleteRecord() {
+        const msg = await this.updateInfo();
+        if(this.uid){
+            const record = await this.vika.deleteRecord(this.uid)
+            if(!record.success){
+                console.log(this.uid);
+                return null;    
+            }
+        }
+        this.app.vault.trash(this.file, false);
+        return null;
+    }
+
+    async getRecord(){
+        const msg = await this.updateInfo();
+        if(!this.uid){
+            return null;
+        }
+
+        const record = await this.vika.getRecord(this.uid);
+        if(!record.success){
+            console.log(this.uid);
+            return null;
+        }
+        const fields = record.data.records[0].fields;   
+        this.updateFullContentFromRecordFields(fields);
+        return record;
+    }
+
+    updateFullContentFromRecordFields(fields: any){
+        let fm_dict:{[key:string]:any} = {}
+        for (const [key, value] of Object.entries(fields).filter(([key, value]) => 
+        !["标题", "文件夹", "内容", "出链", "入链","tags","aliases", "URL", "修改时间", "创建时间"].includes(key))) {
+            fm_dict[key] = value;
+        }
+        fm_dict["uid"] = this.uid;
+        fm_dict["vikaLink"] = this.vika.getURL(fm_dict["uid"]);
+        fm_dict["tags"] = fields.tags || [""];
+        fm_dict["aliases"] = fields.aliases || [""];
+
+        let fm_text = this.dumpsFrontMatter(fm_dict);
+        let full_content = fm_text + '\n' + fields["内容"];
+        this.app.vault.modify(this.file, full_content);
+
+        this.updateInfo();
+        return null;
+    }
+
     parseFrontMatterDict(fm: FrontMatterCache|undefined){
         let fm_dict:{[key:string]:any} = {}
         if (!fm)
@@ -183,8 +249,8 @@ class MyNote {
         let fm_dict = this.parseFrontMatterDict(this.frontmatter);
         fm_dict["uid"] = record.data?.records[0]?.recordId;
         fm_dict["vikaLink"] = this.vika.getURL(fm_dict["uid"]);
-        fm_dict["tags"] = record.data?.records[0]?.fields["标签"] || [""];
-        fm_dict["aliases"] = record.data?.records[0]?.fields["别名"] || [""];
+        fm_dict["tags"] = record.data?.records[0]?.fields["tags"] || [""];
+        fm_dict["aliases"] = record.data?.records[0]?.fields["aliases"] || [""];
         
         let fm_text = this.dumpsFrontMatter(fm_dict);
         let full_content = fm_text + '\n' + this.content;

@@ -33,6 +33,11 @@ class MyVika {
         return res;
     }
 
+    async getRecord(uid: string) {
+        const res = await this.datasheet.records.get(uid);
+        return res;
+    }
+
     getURL(uid: string) {
         return `https://vika.cn/workbench/${this.datasheet.datasheetId}/${this.viewId}/${uid}`;
     }
