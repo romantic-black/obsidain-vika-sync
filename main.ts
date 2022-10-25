@@ -3,8 +3,6 @@ import { MyVika } from "utils/vika";
 import { MyNote, MyObsidian } from "utils/obsidian";
 
 // Remember to rename these classes and interfaces!
-//https://vika.cn/workbench/dstqMqKoMfmqwKcyGd/viwWEJsRNKaej/rec34ozZXsmYQ
-// token: ""
 
 interface VikaSyncSettings {
 	token: string;
@@ -43,6 +41,20 @@ export default class MyPlugin extends Plugin {
 				this.ob.updateRecordInThisPage().then(res=> {
 					res?.success?new Notice("Record updated"):new Notice("Record updated failed");
 		})}});
+		this.addCommand({
+			id: 'vika-sync-update-record-in-folder',
+			name: 'Update Record in Folder',
+			callback: () => {
+				this.ob.updateRecordInThisFolder()
+		}
+		});
+		this.addCommand({
+			id: 'vika-sync-all-record',
+			name: 'Update All Record',
+			callback: () => {
+				this.ob.updateAllRecord()
+		}
+		});
 		this.addSettingTab(new SettingTab(this.app, this));
 	}
 

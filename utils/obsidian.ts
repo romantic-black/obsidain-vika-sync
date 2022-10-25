@@ -61,13 +61,28 @@ class MyObsidian {
     async deleteRecordInThisPage() {
     }
 
-    async createRecordInThisFolder() {
-    }
-
     async updateRecordInThisFolder() {
+        let file: TFile|null = this.app.workspace.getActiveFile();
+        if (!file) {
+            return null;
+        }
+        const files = file.parent.children;
+        for (let file of files) {
+            if(file instanceof TFile && file.extension == "md") {
+                let note: MyNote = new MyNote(this.app, file, this.vika);
+                let res = await note.updateRecord();
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+        }
     }
 
-    async updateALL() {
+    async updateAllRecord() {
+        let files = this.vault.getMarkdownFiles();
+        for (let file of files) {
+            let note: MyNote = new MyNote(this.app, file, this.vika);
+            let res = await note.updateRecord();
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
     }
 }
 
@@ -87,7 +102,6 @@ class MyNote {
     obsidianURL: string;
     uid: string | undefined;
     vikaLink: string | undefined;
-
     constructor(app: App, file: TFile, vika: MyVika) {
         this.app = app;
         this.file = file;
@@ -138,7 +152,7 @@ class MyNote {
         if(this.uid){
             const record = await this.vika.updateRecord(this.uid, msg)
             if(!record.success)
-                console.log(msg);
+                console.log(msg, this.uid);
             this.updateFrontMatterFromRecord(record);
             return record;
         }
