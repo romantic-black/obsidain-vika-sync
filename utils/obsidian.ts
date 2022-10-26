@@ -120,7 +120,8 @@ class MyNote {
     aliases: Array<string>|null;
     content: string;
     outlink: Array<string>;
-    backlink: Array<string>;
+    backlink: (undefined|string)[];
+    unresolvedOutLinks: Array<string>;
     obsidianURI: string;
     uid: string | undefined;
     vikaLink: string | undefined;
@@ -157,6 +158,7 @@ class MyNote {
         this.createTime = ctime.format("YYYY-MM-DD HH:mm");
         this.updateTime = mtime.format("YYYY-MM-DD HH:mm");
         this.id = ctime.format("YYYYMMDDHHMMSS");
+        this.getLinks();
 
         let update = this.settings.customField.update;
         update = this.getCustomFieldsFromFrontMatter(update, this.frontmatter);
@@ -169,9 +171,9 @@ class MyNote {
                 Tags: this.tags,
                 Aliases: this.aliases,
                 Content: this.content,
-                OutLinks: [],
-                BackLinks: [],
-                UnresolvedOutLinks: [],
+                OutLinks: this.outlink,
+                BackLinks: this.backlink,
+                UnresolvedOutLinks: this.unresolvedOutLinks,
                 OBURI: this.obsidianURI,
                 Vault: this.vault,
                 CreatedTime: this.createTime,
@@ -328,4 +330,27 @@ class MyNote {
 			return value;
 		}
 	}
+    
+    getBackLinks(metadataCache:MetadataCache, path:string) {
+		let links =  Object.entries(metadataCache.resolvedLinks).filter(([k, v]) => Object.keys(v).length).filter(item => item[1].hasOwnProperty(path)).map(item => { return item[0].split("/").pop()?.replace(".md", "")}).filter(item=>item);
+        return  links.filter(item => item)
+    }
+
+    getUnresolvedOutLinks(metadataCache:MetadataCache, path:string) {
+		return Object.entries(metadataCache.unresolvedLinks).filter(([k, v]) => Object.keys(v).length).filter(item => item[0] == path).map(item => Object.keys(item[1])).flat();
+	}
+
+    getLinks() {
+        let backlinks = this.getBackLinks(this.app.metadataCache, this.file.path) || [];
+		let links = app.metadataCache.getFileCache(this.file)?.links
+        if(!links)
+            return [backlinks, [], []];
+
+        let outlinks = links.map(n => n.link.split("|")[0].split("#")[0].trim());
+        outlinks = Array.from(new Set(outlinks));
+        let unresolvedOutlinks = this.getUnresolvedOutLinks(this.app.metadataCache, this.file.path);
+        outlinks = outlinks.filter(item => unresolvedOutlinks.indexOf(item) === -1);
+
+        [this.backlink, this.outlink, this.unresolvedOutLinks]= [backlinks, outlinks, unresolvedOutlinks]
+    }
 }
