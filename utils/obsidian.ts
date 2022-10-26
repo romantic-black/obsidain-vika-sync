@@ -201,7 +201,7 @@ class MyNote {
         let data:any = {};
         if(!record || !record.success)
             return null;
-        for(const key of customField){
+        for(const key in customField){
             let value = record.data.records[0].fields[key];
             data[key] = value || "";    
         }
@@ -298,7 +298,7 @@ class MyNote {
         if(!record || !record.success)
             return null;
         let fm_dict = this.parseFrontMatterDict(this.frontmatter);
-        fm_dict.update(this.getFieldsFromRecord(this.settings.customField.recover, record));
+        fm_dict = Object.assign(fm_dict, this.getFieldsFromRecord(this.settings.customField.update, record));
         let fm_text = this.dumpsFrontMatter(fm_dict);
         let full_content = fm_text + '\n' + this.content;
         this.app.vault.modify(this.file, full_content);
