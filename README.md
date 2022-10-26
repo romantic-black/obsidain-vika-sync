@@ -1,6 +1,6 @@
 
 
-Inspired by Johnny Obsidian's [sync script with Vika](https://milinshushe.feishu.cn/docs/doccnSwkXMw7tEQJwmBg72yzpLb)
+Inspired by Johnny Obsidian's [sync script with Vika](https://milinshushe.feishu.cn/docs/doccnSwkXMw7tEQJwmBg72yzpLb), [Chinese](https://github.com/romantic-black/obsidain-vika-sync/blob/master/README_zh.md)
 
 ## What is Vika?
 [Vika](https://vika.cn) is a cloud-based database software in China that can reduce your burden in managing note. Vika has similar functionality and apis to airtable, so this plug-in will be compatible with aritable in the future.
@@ -23,7 +23,6 @@ Inspired by Johnny Obsidian's [sync script with Vika](https://milinshushe.feishu
 - update all note in vault
 - customize your own fields
 
-Vika Sync can save you from writing endless SQL or Js in Dataview, and make your note-taking more easily
 
 ## Default Fields
 Vika Sync has several default fields, which are obtained through the Obsidian Api. Before using Vika, ensure that the following fields are available in your Vika.
@@ -34,6 +33,7 @@ Vika Sync has several default fields, which are obtained through the Obsidian Ap
 - CreatedTime：str
 - UpdatedTime：str
 - OBURI：str
+- Folder: str
 - Aliases：str[]
 - Tags：str[]
 - OutLinks：str[]
