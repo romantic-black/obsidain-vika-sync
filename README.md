@@ -23,7 +23,6 @@ Inspired by Johnny Obsidian's [sync script with Vika](https://milinshushe.feishu
 - update all note in vault
 - customize your own fields
 
-Vika Sync can save you from writing endless SQL or Js in Dataview, and make your note-taking more easily
 
 ## Default Fields
 Vika Sync has several default fields, which are obtained through the Obsidian Api. Before using Vika, ensure that the following fields are available in your Vika.
