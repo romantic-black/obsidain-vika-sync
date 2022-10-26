@@ -8,16 +8,20 @@ interface VikaSyncSettings {
 	token: string;
 	datasheet: string;
 	view: string;
-	customUpdateFields: string;    // 指定frontmatter中需要上传的字段
-	customRecoverFields: string;   // 指定vika中需要下载的字段，其中uid，tags，aliases，vikaLink不需要指定
+	customField: any;
 }
 
 const DEFAULT_SETTINGS: VikaSyncSettings = {
 	token: "",
 	datasheet: "",
 	view: "",
-	customUpdateFields: JSON.stringify({"type": "笔记", "description": []}),
-	customRecoverFields: JSON.stringify(["type", "description"])
+	customField: {
+		"update": {
+			"type": "笔记", 
+			"description": []
+		},
+		"recover": ["type", "description"]
+	}
 }
 
 export default class MyPlugin extends Plugin {
@@ -91,7 +95,7 @@ export default class MyPlugin extends Plugin {
 	async loadSettings() {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
 		this.vika = new MyVika(this.settings.token, this.settings.datasheet, this.settings.view);
-		this.ob = new MyObsidian(this.app, this.vika);
+		this.ob = new MyObsidian(this.app, this.vika, this.settings);
 	}
 
 	async saveSettings() {
@@ -149,32 +153,21 @@ class SettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 		new Setting(containerEl)
-			.setName('自定义上传字段与其默认值')
+			.setName('自定义字段')
 			.addTextArea(text => text
-				.setPlaceholder('')
-				.setValue(this.plugin.settings.customUpdateFields)
+				.setPlaceholder(JSON.stringify(this.plugin.settings.customField))
+				.setValue(this.plugin.settings.customField)
 				.onChange(async (value) => {
 					try {
-						JSON.parse(value);
-						this.plugin.settings.customUpdateFields = value;
+						let json = JSON.parse(value);
+						if(!(json.update && json.recover instanceof Array)) {
+							throw new Error("格式错误");
+						}
+						this.plugin.settings.customField = value;
 						await this.plugin.saveSettings();
 					}
 					catch (e) {
 						new Notice("字段格式错误");
-					}}));
-		new Setting(containerEl)
-		.setName('自定义下载字段')
-		.addTextArea(text => text
-			.setPlaceholder('')
-			.setValue(this.plugin.settings.customRecoverFields)
-			.onChange(async (value) => {
-				try {
-					JSON.parse(value);
-					this.plugin.settings.customRecoverFields = value;
-					await this.plugin.saveSettings();
-				}
-				catch (e) {
-					new Notice("字段格式错误");
-				}}));		
+					}}));	
 	}
 }

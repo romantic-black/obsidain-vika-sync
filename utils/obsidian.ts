@@ -1,12 +1,8 @@
 import { App, Editor, MarkdownView, Modal, Notice, MetadataCache, TFile, 
     parseFrontMatterStringArray, getAllTags, FrontMatterCache, CachedMetadata, 
     parseFrontMatterAliases, parseFrontMatterEntry, moment } from 'obsidian';
-import { resolve, extname, relative, join, parse, posix } from "path";
-import { readdirSync, statSync, readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
-import { execSync, exec } from "child_process";
 import { MyVika } from "utils/vika";
-import { ICreateRecordsResponseData, IHttpErrorResponse, IHttpResponse } from '@vikadata/vika';
-import { stringify } from 'querystring';
+import { ICreateRecordsResponseData, IHttpResponse } from '@vikadata/vika';
 
 
 export {MyNote, MyObsidian};
@@ -39,10 +35,12 @@ class MyObsidian {
     app: App;
     vault: any;
     vika: MyVika;
-    constructor(app: App, vika: MyVika) {
+    settings: any;
+    constructor(app: App, vika: MyVika, settings: any) {
         this.app = app;
         this.vault = app.vault;
         this.vika = vika;
+        this.settings = settings;
     }
 
     async createRecordInThisPage() {
@@ -50,7 +48,7 @@ class MyObsidian {
         if (!file) {
             return null;
         }
-        let note: MyNote = new MyNote(this.app, file, this.vika);
+        let note: MyNote = new MyNote(this.app, file, this.vika, this.settings);
         let res = await note.createRecord();
         return res;
     }
@@ -60,7 +58,7 @@ class MyObsidian {
         if (!file) {
             return null;
         }
-        let note: MyNote = new MyNote(this.app, file, this.vika);
+        let note: MyNote = new MyNote(this.app, file, this.vika, this.settings);
         let res = await note.updateRecord();
         return res;
     }
@@ -70,7 +68,7 @@ class MyObsidian {
         if (!file) {
             return null;
         }
-        let note: MyNote = new MyNote(this.app, file, this.vika);
+        let note: MyNote = new MyNote(this.app, file, this.vika, this.settings);
         let res = await note.deleteRecord();
         return res;
     }
@@ -80,7 +78,7 @@ class MyObsidian {
         if (!file) {
             return null;
         }
-        let note: MyNote = new MyNote(this.app, file, this.vika);
+        let note: MyNote = new MyNote(this.app, file, this.vika, this.settings);
         let res = await note.getRecord();
         return res;
     }
@@ -93,7 +91,7 @@ class MyObsidian {
         const files = file.parent.children;
         for (let file of files) {
             if(file instanceof TFile && file.extension == "md") {
-                let note: MyNote = new MyNote(this.app, file, this.vika);
+                let note: MyNote = new MyNote(this.app, file, this.vika, this.settings);
                 let res = await note.updateRecord();
                 await new Promise(resolve => setTimeout(resolve, 100));
             }
@@ -103,7 +101,7 @@ class MyObsidian {
     async updateAllRecord() {
         let files = this.vault.getMarkdownFiles();
         for (let file of files) {
-            let note: MyNote = new MyNote(this.app, file, this.vika);
+            let note: MyNote = new MyNote(this.app, file, this.vika, this.settings);
             let res = await note.updateRecord();
             await new Promise(resolve => setTimeout(resolve, 100));
         }
@@ -130,13 +128,16 @@ class MyNote {
     id: string;
     createTime: string;
     updateTime: string;
-    constructor(app: App, file: TFile, vika: MyVika) {
+    settings: any;
+    constructor(app: App, file: TFile, vika: MyVika, settings: any) {
         this.app = app;
         this.file = file;
         this.vika = vika;
+        this.settings = settings;
     }
 
     async updateInfo(){
+        
         let file:TFile = this.file;
         this.frontmatter = app.metadataCache.getFileCache(file)?.frontmatter;
         this.cache = app.metadataCache.getFileCache(file);
@@ -156,7 +157,10 @@ class MyNote {
         this.createTime = ctime.format("YYYY-MM-DD HH:mm");
         this.updateTime = mtime.format("YYYY-MM-DD HH:mm");
         this.id = ctime.format("YYYYMMDDHHMMSS");
-        
+
+        let update = this.settings.customField.update;
+        update = this.getCustomFieldsFromFrontMatter(update, this.frontmatter);
+
         this.content = await this.app.vault.read(this.file);
         this.content = this.removeFrontMatterFromContent(this.content);
         let data: BasicFields = {
@@ -173,7 +177,38 @@ class MyNote {
                 CreatedTime: this.createTime,
                 UpdatedTime: this.updateTime,
                 ID: this.id,
+                ...update
             };
+        return data;
+    }
+
+    getCustomFieldsFromFrontMatter(customField: {[key:string]:string|Array<string>}, frontmatter: FrontMatterCache|undefined) {
+        let data: {[key:string]:string|Array<string>} = {};
+        for(const [key, value] of Object.entries(customField).filter(
+            ([key, value]) => !["Tags, Aliases, uid, vikaLink"].includes(key)
+        )){
+            if (value instanceof Array){
+                data[key] = parseFrontMatterStringArray(frontmatter, key) || value;
+            }
+            else{
+                data[key] = parseFrontMatterEntry(frontmatter, key) || value;
+            }
+        }
+        return data;
+    }
+
+    getFieldsFromRecord(customField: Array<string>, record: IHttpResponse<ICreateRecordsResponseData> | undefined){
+        let data:any = {};
+        if(!record || !record.success)
+            return null;
+        for(const key in customField){
+            let value = record.data.records[0].fields[key];
+            data[key] = value || "";    
+        }
+        data["uid"] = record.data?.records[0]?.recordId;
+        data["vikaLink"] = this.vika.getURL(data["uid"]);
+        data["Tags"] = record.data?.records[0]?.fields["Tags"] || [""];
+        data["Aliases"] = record.data?.records[0]?.fields["Aliases"] || [""];
         return data;
     }
 
@@ -182,7 +217,7 @@ class MyNote {
         const record = await this.vika.createRecord(msg)
         if(!record.success)
             console.log(msg);
-        this.updateFrontMatterFromRecord(record);
+        this.recoverFrontMatterFromRecord(record);
         return record;
     }
 
@@ -193,7 +228,7 @@ class MyNote {
             const record = await this.vika.updateRecord(this.uid, msg)
             if(!record.success)
                 console.log(msg, this.uid);
-            this.updateFrontMatterFromRecord(record);
+            this.recoverFrontMatterFromRecord(record);
             return record;
         }
         else{
@@ -225,25 +260,15 @@ class MyNote {
         }
 
         const record = await this.vika.getRecord(this.uid);
-        if(!record.success){
-            console.log(this.uid);
-            return null;
-        }
-        const fields = record.data.records[0].fields;   
-        this.updateFullContentFromRecordFields(fields);
+        this.recoverFullContentFromRecord(record);
         return record;
     }
 
-    updateFullContentFromRecordFields(fields: any){
-        let fm_dict:{[key:string]:any} = {}
-        for (const [key, value] of Object.entries(fields).filter(([key, value]) => 
-        !["Title", "Folder", "Content", "OutLinks", "BackLinks","Tags","Aliases", "OBURI"].includes(key))) {
-            fm_dict[key] = value;
-        }
-        fm_dict["uid"] = this.uid;
-        fm_dict["vikaLink"] = this.vika.getURL(fm_dict["uid"]);
-        fm_dict["Tags"] = fields.tags || [""];
-        fm_dict["Aliases"] = fields.aliases || [""];
+    recoverFullContentFromRecord(record: IHttpResponse<ICreateRecordsResponseData> | undefined){
+        if(!record || !record.success)
+            return null;
+        const fields = record?.data.records[0].fields;
+        let fm_dict = this.getFieldsFromRecord(this.settings.customField.update, record);
 
         let fm_text = this.dumpsFrontMatter(fm_dict);
         let full_content = fm_text + '\n' + fields["Content"];
@@ -269,15 +294,11 @@ class MyNote {
         return fm_dict;
     }
 
-    updateFrontMatterFromRecord(record: IHttpResponse<ICreateRecordsResponseData> | undefined){
-        if(!record?.success)
+    recoverFrontMatterFromRecord(record: IHttpResponse<ICreateRecordsResponseData> | undefined){
+        if(!record || !record.success)
             return null;
         let fm_dict = this.parseFrontMatterDict(this.frontmatter);
-        fm_dict["uid"] = record.data?.records[0]?.recordId;
-        fm_dict["vikaLink"] = this.vika.getURL(fm_dict["uid"]);
-        fm_dict["Tags"] = record.data?.records[0]?.fields["Tags"] || [""];
-        fm_dict["Aliases"] = record.data?.records[0]?.fields["Aliases"] || [""];
-        
+        fm_dict = Object.assign(fm_dict, this.getFieldsFromRecord(this.settings.customField.update, record));
         let fm_text = this.dumpsFrontMatter(fm_dict);
         let full_content = fm_text + '\n' + this.content;
         this.app.vault.modify(this.file, full_content);
