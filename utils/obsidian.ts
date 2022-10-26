@@ -209,9 +209,13 @@ class MyNote {
                 console.log(this.uid);
                 return null;    
             }
+            this.app.vault.trash(this.file, false);
+            return true;
         }
-        this.app.vault.trash(this.file, false);
-        return null;
+        else{
+            this.app.vault.trash(this.file, false);
+            return false;
+        }
     }
 
     async getRecord(){

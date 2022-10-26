@@ -49,21 +49,27 @@ export default class MyPlugin extends Plugin {
 			id: 'vika-sync-update-record-in-folder',
 			name: 'Update Record in Folder',
 			callback: () => {
+				new Notice("start updating");
 				this.ob.updateRecordInThisFolder()
-		}
+				new Notice("update finished");
+			}
 		});
 		this.addCommand({
 			id: 'vika-sync-all-record',
 			name: 'Update All Record',
 			callback: () => {
-				this.ob.updateAllRecord()
+				new Notice("start updating")
+				this.ob.updateAllRecord();
+				new Notice("update finished")
 		}
 		});
 		this.addCommand({
 			id: 'vika-sync-delete-record',
 			name: 'Delete Record',
 			callback: () => {
-				this.ob.deleteRecordAndThisPage()
+				this.ob.deleteRecordAndThisPage().then(res=> {
+					res === true?new Notice("Record deleted"):new Notice("Record deleted failed");
+				})
 		}
 		});
 		this.addCommand({
