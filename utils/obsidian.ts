@@ -93,9 +93,14 @@ class MyObsidian {
             if(file instanceof TFile && file.extension == "md") {
                 let note: MyNote = new MyNote(this.app, file, this.vika, this.settings);
                 let res = await note.updateRecord();
-                await new Promise(resolve => setTimeout(resolve, 100));
+                if(res.success) {
+                    new Notice(`update ${file.name} success`);
+                } else {
+                    new Notice(`update ${file.name} failed`);
+                }   
             }
         }
+        new Notice("update finished");
     }
 
     async updateAllRecord() {
@@ -103,8 +108,13 @@ class MyObsidian {
         for (let file of files) {
             let note: MyNote = new MyNote(this.app, file, this.vika, this.settings);
             let res = await note.updateRecord();
-            await new Promise(resolve => setTimeout(resolve, 100));
+            if(res.success) {
+                new Notice(`update ${file.name} success`);
+            } else {
+                new Notice(`update ${file.name} failed`);
+            }   
         }
+        new Notice("update finished");
     }
 }
 
@@ -144,6 +154,7 @@ class MyNote {
         this.cache = app.metadataCache.getFileCache(file);
         this.aliases = parseFrontMatterAliases(this.frontmatter) || [];
         this.tags = this.cache? (getAllTags(this.cache) || []):[];
+        this.tags = Array.from(new Set(this.tags));
         this.title = file.basename;
         this.folder = file.parent.name;
         const vaultName = encodeURI(file.vault.getName());
@@ -348,7 +359,7 @@ class MyNote {
         let outlinks = links.map(n => n.link.split("|")[0].split("#")[0].trim());
         outlinks = Array.from(new Set(outlinks));
         let unresolvedOutlinks = this.getUnresolvedOutLinks(this.app.metadataCache, this.file.path);
-        outlinks = outlinks.filter(item => unresolvedOutlinks.indexOf(item) === -1);
+        outlinks = outlinks.filter(item => unresolvedOutlinks.indexOf(item) === -1 && item != "");
 
         [this.backlink, this.outlink, this.unresolvedOutLinks]= [backlinks, outlinks, unresolvedOutlinks]
     }
