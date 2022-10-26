@@ -1,10 +1,10 @@
 {
-	"id": "obsidian-vika-sync",
-	"name": "Vika sync",
-	"version": "0.3.0",
+	"id": "vika-sync",
+	"name": "Vika Sync",
+	"version": "0.2.1",
 	"minAppVersion": "0.15.0",
-	"description": "sync your note to vika",
-	"author": "Obsidian",
+	"description": "Sync your note to vika",
+	"author": "romantic-black",
 	"authorUrl": "https://github.com/romantic-black",
 	"isDesktopOnly": false
 }
