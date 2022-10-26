@@ -1,6 +1,6 @@
 
 
-Inspired by Johnny Obsidian's [sync script with Vika](https://milinshushe.feishu.cn/docs/doccnSwkXMw7tEQJwmBg72yzpLb)
+Inspired by Johnny Obsidian's [sync script with Vika](https://milinshushe.feishu.cn/docs/doccnSwkXMw7tEQJwmBg72yzpLb), [Chinese](https://github.com/romantic-black/obsidain-vika-sync/blob/master/README_zh.md)
 
 ## What is Vika?
 [Vika](https://vika.cn) is a cloud-based database software in China that can reduce your burden in managing note. Vika has similar functionality and apis to airtable, so this plug-in will be compatible with aritable in the future.
