@@ -197,7 +197,7 @@ class MyNote {
         return data;
     }
 
-    getFieldsFromRecord(customField: Array<string>, record: IHttpResponse<ICreateRecordsResponseData> | undefined){
+    getFrontMatterFromRecord(customField: Array<string>, record: IHttpResponse<ICreateRecordsResponseData> | undefined){
         let data:any = {};
         if(!record || !record.success)
             return null;
@@ -268,7 +268,8 @@ class MyNote {
         if(!record || !record.success)
             return null;
         const fields = record?.data.records[0].fields;
-        let fm_dict = this.getFieldsFromRecord(this.settings.customField.update, record);
+        let fm_dict = this.parseFrontMatterDict(this.frontmatter)
+        fm_dict = Object.assign(fm_dict, this.getFrontMatterFromRecord(this.settings.customField.update, record));
 
         let fm_text = this.dumpsFrontMatter(fm_dict);
         let full_content = fm_text + '\n' + fields["Content"];
@@ -298,7 +299,7 @@ class MyNote {
         if(!record || !record.success)
             return null;
         let fm_dict = this.parseFrontMatterDict(this.frontmatter);
-        fm_dict = Object.assign(fm_dict, this.getFieldsFromRecord(this.settings.customField.update, record));
+        fm_dict = Object.assign(fm_dict, this.getFrontMatterFromRecord(this.settings.customField.update, record));
         let fm_text = this.dumpsFrontMatter(fm_dict);
         let full_content = fm_text + '\n' + this.content;
         this.app.vault.modify(this.file, full_content);
