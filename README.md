@@ -55,5 +55,4 @@
 在更新和创建和获取操作中，原有的字段不会受影响，只有 recover 中指定的字段和默认字段中 uid，vikaLink，Tags，Aliases会自动更新
 
 ## TODO
-- 入链出链的获取
 - 看看有没有 bug
