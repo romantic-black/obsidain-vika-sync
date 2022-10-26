@@ -5,7 +5,10 @@
 ## How to use
 - 下载 release 中的文件至`.obsidian\plugins\obsidain-vika-sync`中
 - 下载 advanced url 插件
-- 打开设置，开启插件，完成 vik a的 token，datasheetId，viewId 设置
+- 打开设置，开启插件，完成 vika 的 token，datasheetId，viewId 设置
+  - 从 vika 数据表中任取一个单元格，点击右键，选择复制行 URL，假设其为 `https://vika.cn/workbench/dstqMqKoMfmqwKcyGd/viwWEJsRNKaej/recso6avo3jrs`
+  - datasheetId 对应`dstqMqKoMfmqwKcyGd`
+  - viewId 对应`viwWEJsRNKaej`
 - **注意**：不要在重要的库中使用本插件，刚写出来没两天
 
 ## 目前的功能
