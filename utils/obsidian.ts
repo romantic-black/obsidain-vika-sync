@@ -186,9 +186,7 @@ class MyNote {
 
     getCustomFieldsFromFrontMatter(customField: {[key:string]:string|Array<string>}, frontmatter: FrontMatterCache|undefined) {
         let data: {[key:string]:string|Array<string>} = {};
-        for(const [key, value] of Object.entries(customField).filter(
-            ([key, value]) => !["Tags, Aliases, uid, vikaLink"].includes(key)
-        )){
+        for(const [key, value] of Object.entries(customField)){
             if (value instanceof Array){
                 data[key] = parseFrontMatterStringArray(frontmatter, key) || value;
             }
@@ -285,7 +283,8 @@ class MyNote {
         let fm_dict:{[key:string]:any} = {}
         if (!fm)
             return fm_dict;
-        for(let [key, value] of Object.entries(fm).filter(([key, value]) => key !== "position"))
+        for(let [key, value] of Object.entries(fm).filter(([key, value]) =>
+         !["position", "Tags", "tags", "Tag", "tag", "Aliases", "aliases", "Alias", "alias", "uid", "vikaLink"].includes(key)))
         {
             if (value instanceof Array) {
                 let arrayData = parseFrontMatterStringArray(fm, key) || value;
