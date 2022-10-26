@@ -8,12 +8,16 @@ interface VikaSyncSettings {
 	token: string;
 	datasheet: string;
 	view: string;
+	customUpdateFields: string;    // 指定frontmatter中需要上传的字段
+	customRecoverFields: string;   // 指定vika中需要下载的字段，其中uid，tags，aliases，vikaLink不需要指定
 }
 
 const DEFAULT_SETTINGS: VikaSyncSettings = {
 	token: "",
 	datasheet: "",
-	view: ""
+	view: "",
+	customUpdateFields: JSON.stringify({"type": "笔记", "description": []}),
+	customRecoverFields: JSON.stringify(["type", "description"])
 }
 
 export default class MyPlugin extends Plugin {
@@ -138,5 +142,33 @@ class SettingTab extends PluginSettingTab {
 					this.plugin.settings.view = value;
 					await this.plugin.saveSettings();
 				}));
+		new Setting(containerEl)
+			.setName('自定义上传字段与其默认值')
+			.addTextArea(text => text
+				.setPlaceholder('')
+				.setValue(this.plugin.settings.customUpdateFields)
+				.onChange(async (value) => {
+					try {
+						JSON.parse(value);
+						this.plugin.settings.customUpdateFields = value;
+						await this.plugin.saveSettings();
+					}
+					catch (e) {
+						new Notice("字段格式错误");
+					}}));
+		new Setting(containerEl)
+		.setName('自定义下载字段')
+		.addTextArea(text => text
+			.setPlaceholder('')
+			.setValue(this.plugin.settings.customRecoverFields)
+			.onChange(async (value) => {
+				try {
+					JSON.parse(value);
+					this.plugin.settings.customRecoverFields = value;
+					await this.plugin.saveSettings();
+				}
+				catch (e) {
+					new Notice("字段格式错误");
+				}}));		
 	}
 }

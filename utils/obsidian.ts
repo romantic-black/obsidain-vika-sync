@@ -1,6 +1,6 @@
 import { App, Editor, MarkdownView, Modal, Notice, MetadataCache, TFile, 
     parseFrontMatterStringArray, getAllTags, FrontMatterCache, CachedMetadata, 
-    parseFrontMatterAliases, parseFrontMatterEntry } from 'obsidian';
+    parseFrontMatterAliases, parseFrontMatterEntry, moment } from 'obsidian';
 import { resolve, extname, relative, join, parse, posix } from "path";
 import { readdirSync, statSync, readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
 import { execSync, exec } from "child_process";
@@ -8,18 +8,24 @@ import { MyVika } from "utils/vika";
 import { ICreateRecordsResponseData, IHttpErrorResponse, IHttpResponse } from '@vikadata/vika';
 import { stringify } from 'querystring';
 
+
 export {MyNote, MyObsidian};
 
 // 这些值都可以从 Obsidian 的 API 中获取
 interface BasicFields {
-    "标题": string;
-    "文件夹": string;
-    "tags": Array<string>;
-    "aliases": Array<string>;
-    "内容": string;
-    "出链": Array<string>;
-    "入链": Array<string>;
-    "URL": string;
+    Title: string;
+    Folder: string;
+    Tags: Array<string>;
+    Vault: string;
+    Aliases: Array<string>;
+    Content: string;
+    OutLinks: Array<string>;
+    BackLinks: Array<string>;
+    UnresolvedOutLinks: Array<string>;
+    OBURI: string;
+    ID: string;
+    UpdatedTime: string;
+    CreatedTime: string;
 }
 
 interface BasicFrontMatterAtrributes {
@@ -117,9 +123,13 @@ class MyNote {
     content: string;
     outlink: Array<string>;
     backlink: Array<string>;
-    obsidianURL: string;
+    obsidianURI: string;
     uid: string | undefined;
     vikaLink: string | undefined;
+    vault: string;
+    id: string;
+    createTime: string;
+    updateTime: string;
     constructor(app: App, file: TFile, vika: MyVika) {
         this.app = app;
         this.file = file;
@@ -138,20 +148,32 @@ class MyNote {
         let basicURL:string = `obsidian://open?vault=${vaultName}&file=${file.path}`; 
         let advancedURL:string = `obsidian://advanced-uri?vault=${vaultName}&uid=`;
         this.uid = this.frontmatter?.["uid"];
-        this.obsidianURL = this.uid? advancedURL + this.uid: basicURL;
+        this.obsidianURI = this.uid? advancedURL + this.uid: basicURL;
         this.vikaLink = this.frontmatter?.["vikaLink"];
+        this.vault = file.vault.getName();
+        let ctime = moment(new Date(file.stat.ctime));
+        let mtime = moment(new Date(file.stat.mtime));
+        this.createTime = ctime.format("YYYY-MM-DD HH:mm");
+        this.updateTime = mtime.format("YYYY-MM-DD HH:mm");
+        this.id = ctime.format("YYYYMMDDHHMMSS");
+        
         this.content = await this.app.vault.read(this.file);
         this.content = this.removeFrontMatterFromContent(this.content);
         let data: BasicFields = {
-                "标题": this.title,
-                "文件夹": this.folder,
-                "tags": this.tags,
-                "aliases": this.aliases,
-                "内容": this.content,
-                "出链": [],
-                "入链": [],
-                "URL": this.obsidianURL,
-            }
+                Title: this.title,
+                Folder: this.folder,
+                Tags: this.tags,
+                Aliases: this.aliases,
+                Content: this.content,
+                OutLinks: [],
+                BackLinks: [],
+                UnresolvedOutLinks: [],
+                OBURI: this.obsidianURI,
+                Vault: this.vault,
+                CreatedTime: this.createTime,
+                UpdatedTime: this.updateTime,
+                ID: this.id,
+            };
         return data;
     }
 
@@ -211,16 +233,16 @@ class MyNote {
     updateFullContentFromRecordFields(fields: any){
         let fm_dict:{[key:string]:any} = {}
         for (const [key, value] of Object.entries(fields).filter(([key, value]) => 
-        !["标题", "文件夹", "内容", "出链", "入链","tags","aliases", "URL", "修改时间", "创建时间"].includes(key))) {
+        !["Title", "Folder", "Content", "OutLinks", "BackLinks","Tags","Aliases", "OBURI"].includes(key))) {
             fm_dict[key] = value;
         }
         fm_dict["uid"] = this.uid;
         fm_dict["vikaLink"] = this.vika.getURL(fm_dict["uid"]);
-        fm_dict["tags"] = fields.tags || [""];
-        fm_dict["aliases"] = fields.aliases || [""];
+        fm_dict["Tags"] = fields.tags || [""];
+        fm_dict["Aliases"] = fields.aliases || [""];
 
         let fm_text = this.dumpsFrontMatter(fm_dict);
-        let full_content = fm_text + '\n' + fields["内容"];
+        let full_content = fm_text + '\n' + fields["Content"];
         this.app.vault.modify(this.file, full_content);
 
         this.updateInfo();
@@ -249,8 +271,8 @@ class MyNote {
         let fm_dict = this.parseFrontMatterDict(this.frontmatter);
         fm_dict["uid"] = record.data?.records[0]?.recordId;
         fm_dict["vikaLink"] = this.vika.getURL(fm_dict["uid"]);
-        fm_dict["tags"] = record.data?.records[0]?.fields["tags"] || [""];
-        fm_dict["aliases"] = record.data?.records[0]?.fields["aliases"] || [""];
+        fm_dict["Tags"] = record.data?.records[0]?.fields["Tags"] || [""];
+        fm_dict["Aliases"] = record.data?.records[0]?.fields["Aliases"] || [""];
         
         let fm_text = this.dumpsFrontMatter(fm_dict);
         let full_content = fm_text + '\n' + this.content;
