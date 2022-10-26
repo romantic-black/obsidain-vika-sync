@@ -33,6 +33,7 @@ Vika Sync has several default fields, which are obtained through the Obsidian Ap
 - CreatedTime：str
 - UpdatedTime：str
 - OBURI：str
+- Folder: str
 - Aliases：str[]
 - Tags：str[]
 - OutLinks：str[]
