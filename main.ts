@@ -24,7 +24,7 @@ const DEFAULT_SETTINGS: VikaSyncSettings = {
 	}
 }
 
-export default class MyPlugin extends Plugin {
+export default class VikaSyncPlugin extends Plugin {
 	settings: VikaSyncSettings;
 	vika: MyVika;
 	ob: MyObsidian;
@@ -106,9 +106,9 @@ export default class MyPlugin extends Plugin {
 }
 
 class SettingTab extends PluginSettingTab {
-	plugin: MyPlugin;
+	plugin: VikaSyncPlugin;
 
-	constructor(app: App, plugin: MyPlugin) {
+	constructor(app: App, plugin: VikaSyncPlugin) {
 		super(app, plugin);
 		this.plugin = plugin;
 	}
