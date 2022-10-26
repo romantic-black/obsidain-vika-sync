@@ -43,6 +43,7 @@
 - CreatedTime：时间
 - UpdatedTime：时间
 - OBURI：链接
+- Folder: 单行文本
 - Aliases：多选
 - Tags：多选
 - OutLinks：多选
