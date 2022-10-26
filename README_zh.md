@@ -1,6 +1,6 @@
 ## 简介
 
-由 Johnny 老师的[Ob 与 Vika 同步脚本](https://milinshushe.feishu.cn/docs/doccnSwkXMw7tEQJwmBg72yzpLb)改进而来
+由 Johnny 老师的[Ob 与 Vika 同步脚本](https://milinshushe.feishu.cn/docs/doccnSwkXMw7tEQJwmBg72yzpLb)改进而来，[Chinese version](https://github.com/romantic-black/obsidain-vika-sync/blob/master/README_zh.md)
 
 ## How to use
 - 下载 release 中的文件至`.obsidian\plugins\obsidain-vika-sync`中
