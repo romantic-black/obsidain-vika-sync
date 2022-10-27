@@ -154,6 +154,7 @@ class MyNote {
         this.cache = app.metadataCache.getFileCache(file);
         this.aliases = parseFrontMatterAliases(this.frontmatter) || [];
         this.tags = this.cache? (getAllTags(this.cache) || []):[];
+        this.tags = this.tags.map((tag) => tag.replace("#", ""));
         this.tags = Array.from(new Set(this.tags));
         this.title = file.basename;
         this.folder = file.parent.path;
@@ -218,8 +219,8 @@ class MyNote {
         }
         data["uid"] = record.data?.records[0]?.recordId;
         data["vikaLink"] = this.vika.getURL(data["uid"]);
-        data["Tags"] = record.data?.records[0]?.fields["Tags"] || [""];
-        data["Aliases"] = record.data?.records[0]?.fields["Aliases"] || [""];
+        data["tags"] = record.data?.records[0]?.fields["Tags"] || [""];
+        data["aliases"] = record.data?.records[0]?.fields["Aliases"] || [""];
         return data;
     }
 
