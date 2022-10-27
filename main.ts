@@ -20,7 +20,7 @@ const DEFAULT_SETTINGS: VikaSyncSettings = {
 			"type": "笔记", 
 			"description": []
 	},
-	recoverField: {"type": null}
+	recoverField: {"type": ""}
 }
 
 export default class VikaSyncPlugin extends Plugin {
@@ -72,8 +72,8 @@ export default class VikaSyncPlugin extends Plugin {
 		}
 		});
 		this.addCommand({
-			id: 'vika-sync-get-record',
-			name: 'Get Record',
+			id: 'vika-sync-recover-record',
+			name: 'recover Record',
 			callback: () => {
 				this.ob.recoverFromRecord().then(res=> {
 					res?.success?new Notice("Record recovered"):new Notice("Record recovered failed");
@@ -120,7 +120,7 @@ class SettingTab extends PluginSettingTab {
 		containerEl.createEl('h2', {text: 'Vika Sync Settings'});
 
 		new Setting(containerEl)
-			.setName('Token')
+			.setName('Token: 从 vika 的 API 页面获取')
 			.addText(text => text
 				.setPlaceholder('')
 				.setValue(this.plugin.settings.token)
@@ -129,7 +129,7 @@ class SettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 		new Setting(containerEl)
-			.setName('Datasheet')
+			.setName('Datasheet:从 vika 的行链接中获取, 形如 dstbcfEH6FLs45VZfi')
 			.addText(text => text
 				.setPlaceholder('')
 				.setValue(this.plugin.settings.datasheet)
@@ -139,7 +139,7 @@ class SettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
-			.setName('View')
+			.setName('View: 从 vika 的行链接中获取, 形如 viwayRfjHdoW1')
 			.addText(text => text
 				.setPlaceholder('')
 				.setValue(this.plugin.settings.view)
@@ -148,7 +148,7 @@ class SettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 		new Setting(containerEl)
-			.setName('自定义字段')
+			.setName('自定义上传字段: 字段会从 frontmatter 上传至 vika, 同时具有默认值')
 			.addTextArea(text => text
 				.setPlaceholder(JSON.stringify(this.plugin.settings.updateField))
 				.setValue(this.plugin.settings.updateField)
@@ -163,7 +163,7 @@ class SettingTab extends PluginSettingTab {
 					}}));	
 
 		new Setting(containerEl)
-			.setName('自定义字段')
+			.setName('自定义下载字段: 字段会被下载到 frontmatter')
 			.addTextArea(text => text
 				.setPlaceholder(JSON.stringify(this.plugin.settings.recoverField))
 				.setValue(this.plugin.settings.recoverField)
