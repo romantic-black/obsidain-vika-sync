@@ -156,7 +156,7 @@ class MyNote {
         this.tags = this.cache? (getAllTags(this.cache) || []):[];
         this.tags = Array.from(new Set(this.tags));
         this.title = file.basename;
-        this.folder = file.parent.name;
+        this.folder = file.parent.path;
         const vaultName = encodeURI(file.vault.getName());
         let basicURL:string = `obsidian://open?vault=${vaultName}&file=${file.path}`; 
         let advancedURL:string = `obsidian://advanced-uri?vault=${vaultName}&uid=`;
@@ -171,7 +171,7 @@ class MyNote {
         this.id = ctime.format("YYYYMMDDHHMMSS");
         this.getLinks();
 
-        let update = this.settings.customField.update;
+        let update = this.settings.updateField;
         update = this.getCustomFieldsFromFrontMatter(update, this.frontmatter);
 
         this.content = await this.app.vault.read(this.file);
@@ -199,7 +199,7 @@ class MyNote {
         let data: {[key:string]:string|Array<string>} = {};
         for(const [key, value] of Object.entries(customField)){
             if (value instanceof Array){
-                data[key] = parseFrontMatterStringArray(frontmatter, key) || value;
+                data[key] = parseFrontMatterStringArray(frontmatter, key) || [];
             }
             else{
                 data[key] = parseFrontMatterEntry(frontmatter, key) || value;
@@ -208,13 +208,13 @@ class MyNote {
         return data;
     }
 
-    getFrontMatterFromRecord(customField: Array<string>, record: IHttpResponse<ICreateRecordsResponseData> | undefined){
+    getFrontMatterFromRecord(customField: {[key:string]:string}, record: IHttpResponse<ICreateRecordsResponseData> | undefined){
         let data:any = {};
         if(!record || !record.success)
             return null;
-        for(const key in customField){
+        for(const key of Object.keys(customField)){
             let value = record.data.records[0].fields[key];
-            data[key] = value || "";    
+            data[key] = value || "";
         }
         data["uid"] = record.data?.records[0]?.recordId;
         data["vikaLink"] = this.vika.getURL(data["uid"]);
@@ -279,9 +279,8 @@ class MyNote {
         if(!record || !record.success)
             return null;
         const fields = record?.data.records[0].fields;
-        let fm_dict = this.parseFrontMatterDict(this.frontmatter)
-        fm_dict = Object.assign(fm_dict, this.getFrontMatterFromRecord(this.settings.customField.update, record));
-
+        let fm_dict = this.parseFrontMatterDict(this.frontmatter);
+        fm_dict = Object.assign(fm_dict, this.getFrontMatterFromRecord(this.settings.recoverField, record));
         let fm_text = this.dumpsFrontMatter(fm_dict);
         let full_content = fm_text + '\n' + fields["Content"];
         this.app.vault.modify(this.file, full_content);
@@ -298,10 +297,10 @@ class MyNote {
          !["position", "Tags", "tags", "Tag", "tag", "Aliases", "aliases", "Alias", "alias", "uid", "vikaLink"].includes(key)))
         {
             if (value instanceof Array) {
-                let arrayData = parseFrontMatterStringArray(fm, key) || value;
+                let arrayData = parseFrontMatterStringArray(fm, key) || "";
                 fm_dict[key] = arrayData;
             } else {
-                fm_dict[key] = parseFrontMatterEntry(fm, key) || value;
+                fm_dict[key] = parseFrontMatterEntry(fm, key) || value || "";
             }
         }
         return fm_dict;
@@ -311,7 +310,7 @@ class MyNote {
         if(!record || !record.success)
             return null;
         let fm_dict = this.parseFrontMatterDict(this.frontmatter);
-        fm_dict = Object.assign(fm_dict, this.getFrontMatterFromRecord(this.settings.customField.update, record));
+        fm_dict = Object.assign(fm_dict, this.getFrontMatterFromRecord(this.settings.recoverField, record));
         let fm_text = this.dumpsFrontMatter(fm_dict);
         let full_content = fm_text + '\n' + this.content;
         this.app.vault.modify(this.file, full_content);

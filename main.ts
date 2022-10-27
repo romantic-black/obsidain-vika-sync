@@ -8,20 +8,19 @@ interface VikaSyncSettings {
 	token: string;
 	datasheet: string;
 	view: string;
-	customField: any;
+	updateField: any;
+	recoverField: any;
 }
 
 const DEFAULT_SETTINGS: VikaSyncSettings = {
 	token: "",
 	datasheet: "",
 	view: "",
-	customField: {
-		"update": {
+	updateField: {
 			"type": "笔记", 
 			"description": []
-		},
-		"recover": ["type", "description"]
-	}
+	},
+	recoverField: {"type": null}
 }
 
 export default class VikaSyncPlugin extends Plugin {
@@ -151,19 +150,31 @@ class SettingTab extends PluginSettingTab {
 		new Setting(containerEl)
 			.setName('自定义字段')
 			.addTextArea(text => text
-				.setPlaceholder(JSON.stringify(this.plugin.settings.customField))
-				.setValue(this.plugin.settings.customField)
+				.setPlaceholder(JSON.stringify(this.plugin.settings.updateField))
+				.setValue(this.plugin.settings.updateField)
 				.onChange(async (value) => {
 					try {
 						let json = JSON.parse(value);
-						if(!(json.update && json.recover instanceof Array)) {
-							throw new Error("格式错误");
-						}
-						this.plugin.settings.customField = value;
+						this.plugin.settings.updateField = json;
 						await this.plugin.saveSettings();
 					}
 					catch (e) {
 						new Notice("字段格式错误");
 					}}));	
+
+		new Setting(containerEl)
+			.setName('自定义字段')
+			.addTextArea(text => text
+				.setPlaceholder(JSON.stringify(this.plugin.settings.recoverField))
+				.setValue(this.plugin.settings.recoverField)
+				.onChange(async (value) => {
+					try {
+						let json = JSON.parse(value);
+						this.plugin.settings.recoverField = json;
+						await this.plugin.saveSettings();
+					}
+					catch (e) {
+						new Notice("字段格式错误");
+					}}));
 	}
 }
