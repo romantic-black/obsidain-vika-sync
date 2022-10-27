@@ -35,8 +35,8 @@ export default class VikaSyncPlugin extends Plugin {
 			console.log(e);
 		}
 		this.addCommand({
-			id: 'vika-sync-create-record',
-			name: 'Create Record',
+			id: 'vika-sync-create-new-record',
+			name: 'Create New Record',
 			callback: () => {
 				this.ob.createRecordInThisPage().then(res=> {
 					res?.success?new Notice("Record created"):new Notice("Record created failed");
@@ -73,7 +73,7 @@ export default class VikaSyncPlugin extends Plugin {
 		});
 		this.addCommand({
 			id: 'vika-sync-recover-record',
-			name: 'recover Record',
+			name: 'Recover Record',
 			callback: () => {
 				this.ob.recoverFromRecord().then(res=> {
 					res?.success?new Notice("Record recovered"):new Notice("Record recovered failed");
