@@ -283,7 +283,7 @@ class MyNote {
         let fm_dict = this.parseFrontMatterDict(this.frontmatter);
         fm_dict = Object.assign(fm_dict, this.getFrontMatterFromRecord(this.settings.recoverField, record));
         let fm_text = this.dumpsFrontMatter(fm_dict);
-        let full_content = fm_text + '\n' + fields["Content"];
+        let full_content = fm_text + fields["Content"];
         this.app.vault.modify(this.file, full_content);
 
         this.updateInfo();
