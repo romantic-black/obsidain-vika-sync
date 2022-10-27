@@ -35,36 +35,36 @@ export default class VikaSyncPlugin extends Plugin {
 			console.log(e);
 		}
 		this.addCommand({
-			id: 'vika-sync-create-new-record',
-			name: 'Create New Record',
+			id: 'vika-sync-create-record',
+			name: 'Create New Record for this Note',
 			callback: () => {
 				this.ob.createRecordInThisPage().then(res=> {
 					res?.success?new Notice("Record created"):new Notice("Record created failed");
 		})}});
 		this.addCommand({
-			id: 'vika-sync-update-record',
-			name: 'Update Record',
+			id: 'vika-sync-update-note',
+			name: 'Update this Note',
 			callback: () => {
 				this.ob.updateRecordInThisPage().then(res=> {
 					res?.success?new Notice("Record updated"):new Notice("Record updated failed");
 		})}});
 		this.addCommand({
-			id: 'vika-sync-update-record-in-folder',
-			name: 'Update Record in Folder',
+			id: 'vika-sync-update-note-in-folder',
+			name: 'Update Note in this Folder',
 			callback: () => {
 				this.ob.updateRecordInThisFolder()
 			}
 		});
 		this.addCommand({
-			id: 'vika-sync-record-in-vault',
-			name: 'Update Record in Vault',
+			id: 'vika-sync-update-note-in-vault',
+			name: 'Update Note in this Vault',
 			callback: () => {
 				this.ob.updateAllRecord();
 		}
 		});
 		this.addCommand({
-			id: 'vika-sync-delete-record',
-			name: 'Delete Record',
+			id: 'vika-sync-delete-note-record',
+			name: 'Delete this Note & Record',
 			callback: () => {
 				this.ob.deleteRecordAndThisPage().then(res=> {
 					res === true?new Notice("Record deleted"):new Notice("Record delete failed");
@@ -72,8 +72,8 @@ export default class VikaSyncPlugin extends Plugin {
 		}
 		});
 		this.addCommand({
-			id: 'vika-sync-recover-record',
-			name: 'Recover Record',
+			id: 'vika-sync-recover-note',
+			name: 'Recover this Note from Record',
 			callback: () => {
 				this.ob.recoverFromRecord().then(res=> {
 					res?.success?new Notice("Record recovered"):new Notice("Record recovered failed");
