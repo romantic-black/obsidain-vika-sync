@@ -129,7 +129,7 @@ class SettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 		new Setting(containerEl)
-			.setName('Datasheet:从 vika 的行链接中获取, 形如 dstbcfEH6FLs45VZfi')
+			.setName('Datasheet: 从 vika 的行链接中获取, 形如 dstbcfEH6FLs45VZfi')
 			.addText(text => text
 				.setPlaceholder('')
 				.setValue(this.plugin.settings.datasheet)
