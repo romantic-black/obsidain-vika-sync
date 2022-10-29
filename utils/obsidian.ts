@@ -221,6 +221,9 @@ class MyNote {
         for(const [key, value] of Object.entries(customField)){
             if (value instanceof Array){
                 data[key] = parseFrontMatterStringArray(frontmatter, key) || [];
+                if (data[key]?.[0] == "") {
+                    data[key] = [];
+                }
             }
             else if(value != ""){
                 data[key] = parseFrontMatterEntry(frontmatter, key) || value;
