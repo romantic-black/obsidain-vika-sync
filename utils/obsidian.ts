@@ -50,6 +50,12 @@ class MyObsidian {
         }
         let note: MyNote = new MyNote(this.app, file, this.vika, this.settings);
         let res = await note.createRecord();
+        if(res.success) {
+            new Notice(`update ${file.name} success`);
+        }
+        else {
+            new Notice(`${file.name} : ${res.message}`);
+        }
         return res;
     }
 
@@ -60,6 +66,12 @@ class MyObsidian {
         }
         let note: MyNote = new MyNote(this.app, file, this.vika, this.settings);
         let res = await note.updateRecord();
+        if(res.success) {
+            new Notice(`update ${file.name} success`);
+        }
+        else {
+            new Notice(`${file.name} : ${res.message}`);
+        }
         return res;
     }
 
@@ -95,9 +107,13 @@ class MyObsidian {
                 let res = await note.updateRecord();
                 if(res.success) {
                     new Notice(`update ${file.name} success`);
-                } else {
-                    new Notice(`update ${file.name} failed`);
-                }   
+                } 
+                else if (res.code == 429) {
+                    files.push(file);
+                }
+                else {
+                    new Notice(`${file.name} : ${res.message}`);
+                }
             }
         }
         new Notice("update finished");
@@ -110,8 +126,12 @@ class MyObsidian {
             let res = await note.updateRecord();
             if(res.success) {
                 new Notice(`update ${file.name} success`);
-            } else {
-                new Notice(`update ${file.name} failed`);
+            }
+            else if (res.code == 429) {
+                files.push(file);
+            } 
+            else {
+                new Notice(`${file.name} : ${res.message}`);
             }   
         }
         new Notice("update finished");

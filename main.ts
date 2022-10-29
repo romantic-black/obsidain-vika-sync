@@ -38,30 +38,26 @@ export default class VikaSyncPlugin extends Plugin {
 			id: 'vika-sync-create-record',
 			name: 'Create New Record for this Note',
 			callback: () => {
-				this.ob.createRecordInThisPage().then(res=> {
-					res?.success?new Notice("Record created"):new Notice("Record created failed");
-		})}});
+				this.ob.createRecordInThisPage()
+			}});
 		this.addCommand({
 			id: 'vika-sync-update-note',
 			name: 'Update this Note',
 			callback: () => {
-				this.ob.updateRecordInThisPage().then(res=> {
-					res?.success?new Notice("Record updated"):new Notice("Record updated failed");
-		})}});
+				this.ob.updateRecordInThisPage()
+			}});
 		this.addCommand({
 			id: 'vika-sync-update-note-in-folder',
 			name: 'Update Note in this Folder',
 			callback: () => {
 				this.ob.updateRecordInThisFolder()
-			}
-		});
+			}});
 		this.addCommand({
 			id: 'vika-sync-update-note-in-vault',
 			name: 'Update Note in this Vault',
 			callback: () => {
 				this.ob.updateAllRecord();
-		}
-		});
+		}});
 		this.addCommand({
 			id: 'vika-sync-delete-note-record',
 			name: 'Delete this Note & Record',
