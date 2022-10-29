@@ -222,7 +222,7 @@ class MyNote {
             if (value instanceof Array){
                 data[key] = parseFrontMatterStringArray(frontmatter, key) || [];
             }
-            else{
+            else if(value != ""){
                 data[key] = parseFrontMatterEntry(frontmatter, key) || value;
             }
         }
