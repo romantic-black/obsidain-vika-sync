@@ -145,32 +145,34 @@ class SettingTab extends PluginSettingTab {
 				}));
 		new Setting(containerEl)
 			.setName('自定义上传字段: 字段会从 frontmatter 上传至 vika, 同时具有默认值')
-			.addTextArea(text => text
-				.setPlaceholder(JSON.stringify(this.plugin.settings.updateField))
-				.setValue(this.plugin.settings.updateField)
+			.addText(text => text
+				.setPlaceholder("")
+				.setValue(JSON.stringify(this.plugin.settings.updateField))
 				.onChange(async (value) => {
 					try {
 						let json = JSON.parse(value);
 						this.plugin.settings.updateField = json;
 						await this.plugin.saveSettings();
+						text.inputEl.style.border = "1px solid green";
 					}
 					catch (e) {
-						new Notice("字段格式错误");
+						text.inputEl.style.border = "1px solid red";
 					}}));	
 
 		new Setting(containerEl)
 			.setName('自定义下载字段: 字段会被下载到 frontmatter')
-			.addTextArea(text => text
-				.setPlaceholder(JSON.stringify(this.plugin.settings.recoverField))
-				.setValue(this.plugin.settings.recoverField)
+			.addText(text => text
+				.setPlaceholder("")
+				.setValue(JSON.stringify(this.plugin.settings.recoverField))
 				.onChange(async (value) => {
 					try {
 						let json = JSON.parse(value);
 						this.plugin.settings.recoverField = json;
 						await this.plugin.saveSettings();
+						text.inputEl.style.border = "1px solid green";
 					}
 					catch (e) {
-						new Notice("字段格式错误");
+						text.inputEl.style.border = "1px solid red";
 					}}));
 	}
 }
