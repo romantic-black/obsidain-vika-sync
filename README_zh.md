@@ -43,6 +43,6 @@
 - 你的自定义字段
 
 其中 OBURI 在存在`uid`的前提下优先使用 advanced url 插件中的链接类型，所以需要下载该插件
-
+另外，推荐[frontmatter links插件](https://github.com/Trikzon/obsidian-frontmatter-links)，可以让 vikalink 中的链接能够点击
 ## TODO
 - 看看有没有 bug
