@@ -51,7 +51,7 @@ class MyObsidian {
         let note: MyNote = new MyNote(this.app, file, this.vika, this.settings);
         let res = await note.createRecord();
         if(res.success) {
-            new Notice(`update ${file.name} success`);
+            new Notice(`create ${file.name} success`);
         }
         else {
             new Notice(`${file.name} : ${res.message}`);
@@ -220,7 +220,7 @@ class MyNote {
         let data: {[key:string]:string|Array<string>} = {};
         for(const [key, value] of Object.entries(customField)){
             if (value instanceof Array){
-                data[key] = parseFrontMatterStringArray(frontmatter, key) || [];
+                data[key] = parseFrontMatterStringArray(frontmatter, key) || value;
                 if (data[key]?.[0] == "") {
                     data[key] = [];
                 }
