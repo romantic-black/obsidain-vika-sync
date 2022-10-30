@@ -227,12 +227,10 @@ class MyNote {
 
     getCustomFieldsFromFrontMatter(customField: {[key:string]:string|Array<string>}, frontmatter: FrontMatterCache|undefined) {
         let data: {[key:string]:string|Array<string>} = {};
-        for(const [key, value] of Object.entries(customField)){
+        for(let [key, value] of Object.entries(customField)){
             if (value instanceof Array){
+                value = value.filter(i => i != "");
                 data[key] = parseFrontMatterStringArray(frontmatter, key) || value;
-                if (data[key]?.[0] == "") {
-                    data[key] = [];
-                }
             }
             else if(value != ""){
                 data[key] = parseFrontMatterEntry(frontmatter, key) || value;
