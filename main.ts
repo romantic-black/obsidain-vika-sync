@@ -71,9 +71,8 @@ export default class VikaSyncPlugin extends Plugin {
 			id: 'vika-sync-recover-note',
 			name: 'Recover this Note from Record',
 			callback: () => {
-				this.ob.recoverFromRecord().then(res=> {
-					res?.success?new Notice("Record recovered"):new Notice("Record recovered failed");
-		})}});
+				this.ob.recoverFromRecord()
+			}});
 
 		this.addSettingTab(new SettingTab(this.app, this));
 	}
@@ -152,8 +151,8 @@ class SettingTab extends PluginSettingTab {
 					try {
 						let json = JSON.parse(value);
 						this.plugin.settings.updateField = json;
-						await this.plugin.saveSettings();
 						text.inputEl.style.border = "1px solid green";
+						await this.plugin.saveSettings();
 					}
 					catch (e) {
 						text.inputEl.style.border = "1px solid red";
@@ -168,8 +167,8 @@ class SettingTab extends PluginSettingTab {
 					try {
 						let json = JSON.parse(value);
 						this.plugin.settings.recoverField = json;
-						await this.plugin.saveSettings();
 						text.inputEl.style.border = "1px solid green";
+						await this.plugin.saveSettings();
 					}
 					catch (e) {
 						text.inputEl.style.border = "1px solid red";

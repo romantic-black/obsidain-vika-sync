@@ -92,6 +92,15 @@ class MyObsidian {
         }
         let note: MyNote = new MyNote(this.app, file, this.vika, this.settings);
         let res = await note.getRecord();
+        if(!res) {
+            new Notice(`${file.name} uid not found`);
+        }
+        else if (res.success) {
+            new Notice(`recover ${file.name} success`);
+        }
+        else {
+            new Notice(`${file.name} : ${res.message}`);
+        }
         return res;
     }
 
