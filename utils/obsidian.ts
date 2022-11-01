@@ -365,7 +365,7 @@ class MyNote {
 
 	makeFmValue(value:any) {
 		if (value instanceof Array) {
-			return "\n" + value.map(item => " - " + item).join("\r");
+			return "\n" + value.map(item => " - " + item).join("\n");
 		} else {
 			return value;
 		}
@@ -382,9 +382,11 @@ class MyNote {
 
     getLinks() {
         let backlinks = this.getBackLinks(this.app.metadataCache, this.file.path) || [];
-		let links = app.metadataCache.getFileCache(this.file)?.links
-        if(!links)
-            return [backlinks, [], []];
+		let links = app.metadataCache.getFileCache(this.file)?.links;
+        if(!links){
+            [this.backlink, this.outlink, this.unresolvedOutLinks]= [backlinks, [], []];
+            return;
+        }
 
         let outlinks = links.map(n => n.link.split("|")[0].split("#")[0].trim());
         outlinks = Array.from(new Set(outlinks));
