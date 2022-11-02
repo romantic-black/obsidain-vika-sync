@@ -235,6 +235,9 @@ class MyNote {
             else if(value != ""){
                 data[key] = parseFrontMatterEntry(frontmatter, key) || value;
             }
+            else if(value == "" && parseFrontMatterEntry(frontmatter, key)){
+                data[key] =  parseFrontMatterEntry(frontmatter, key);
+            }
         }
         return data;
     }
