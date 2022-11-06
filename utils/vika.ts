@@ -38,6 +38,13 @@ class MyVika {
         return res;
     }
 
+    async getRecordInFolder(folder: string) {
+        const res = await this.datasheet.records.query({
+            filterByFormula: `{"Folder": "${folder}"}`
+        });
+        return res;
+    }
+
     getURL(uid: string) {
         return `https://vika.cn/workbench/${this.datasheet.datasheetId}/${this.viewId}/${uid}`;
     }

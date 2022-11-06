@@ -73,7 +73,12 @@ export default class VikaSyncPlugin extends Plugin {
 			callback: () => {
 				this.ob.recoverFromRecord()
 			}});
-
+		this.addCommand({
+			id: 'vika-sync-recover-note-in-folder',
+			name: 'Recover Note in this Folder',
+			callback: () => {
+				this.ob.getRecordInThisFolder()
+			}});
 		this.addSettingTab(new SettingTab(this.app, this));
 	}
 

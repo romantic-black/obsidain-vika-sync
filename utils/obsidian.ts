@@ -145,6 +145,16 @@ class MyObsidian {
         }
         new Notice("update finished");
     }
+
+    async getRecordInThisFolder(){
+        let file: TFile|null = this.app.workspace.getActiveFile();
+        if (!file) {
+            return null;
+        }
+        const folder = file.parent.path;
+        let note: MyNote = new MyNote(this.app, file, this.vika, this.settings);
+        let res = await note.getRecordInFolder(folder);
+    }
 }
 
 class MyNote {
@@ -306,6 +316,13 @@ class MyNote {
 
         const record = await this.vika.getRecord(this.uid);
         this.recoverFullContentFromRecord(record);
+        return record;
+    }
+
+    async getRecordInFolder(folder: string){
+        const msg = await this.updateInfo();
+        const record = await this.vika.getRecordInFolder(folder);
+        console.log(record);
         return record;
     }
 
