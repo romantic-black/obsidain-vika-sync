@@ -1,4 +1,4 @@
-import { App, Editor, MarkdownView, Modal, Notice, MetadataCache, TFile, 
+import { App, Editor, MarkdownView, Modal, Notice, MetadataCache, TFile, FileSystemAdapter,
     parseFrontMatterStringArray, getAllTags, FrontMatterCache, CachedMetadata, 
     parseFrontMatterAliases, parseFrontMatterEntry, moment } from 'obsidian';
 import { MyVika } from "utils/vika";
@@ -315,26 +315,37 @@ class MyNote {
         }
 
         const record = await this.vika.getRecord(this.uid);
-        this.recoverFullContentFromRecord(record);
+        await this.recoverFullContentFromRecord(record);
         return record;
     }
 
     async getRecordInFolder(folder: string){
         const msg = await this.updateInfo();
         const record = await this.vika.getRecordInFolder(folder);
-        console.log(record);
+        await this.recoverFullContentFromRecord(record);
         return record;
     }
 
-    recoverFullContentFromRecord(record: IHttpResponse<ICreateRecordsResponseData> | undefined){
+    async recoverFullContentFromRecord(record: IHttpResponse<ICreateRecordsResponseData> | undefined){
         if(!record || !record.success)
             return null;
-        const fields = record?.data.records[0].fields;
-        let fm_dict = this.parseFrontMatterDict(this.frontmatter);
-        fm_dict = Object.assign(fm_dict, this.getFrontMatterFromRecord(this.settings.recoverField, record));
-        let fm_text = this.dumpsFrontMatter(fm_dict);
-        let full_content = fm_text + fields["Content"];
-        this.app.vault.modify(this.file, full_content);
+        // const fields = record?.data.records[0].fields;
+        // let fm_dict = this.parseFrontMatterDict(this.frontmatter);
+        // fm_dict = Object.assign(fm_dict, this.getFrontMatterFromRecord(this.settings.recoverField, record));
+        // let fm_text = this.dumpsFrontMatter(fm_dict);
+        // let full_content = fm_text + fields["Content"];
+        // this.app.vault.modify(this.file, full_content);
+
+        for (const i of record.data.records){
+            const fields = i.fields;
+            let fm_dict = this.parseFrontMatterDict(this.frontmatter);
+            fm_dict = Object.assign(fm_dict, this.getFrontMatterFromRecord(this.settings.recoverField, record));
+            let fm_text = this.dumpsFrontMatter(fm_dict);
+            let full_content = fm_text + fields["Content"];
+            const filePath = this.folder + "/" + fields["Title"] + ".md";
+            
+            await this.app.vault.adapter.write(filePath, full_content);
+        }
 
         this.updateInfo();
         return null;

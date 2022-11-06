@@ -40,9 +40,10 @@ class MyVika {
 
     async getRecordInFolder(folder: string) {
         const res = await this.datasheet.records.query({
-            filterByFormula: `{"Folder": "${folder}"}`
+            filterByFormula: `find("${folder}", {Folder}) > 0`,
+            viewId: this.viewId,
         });
-        return res;
+        return res;     
     }
 
     getURL(uid: string) {
