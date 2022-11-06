@@ -252,20 +252,19 @@ class MyNote {
         return data;
     }
 
-    getFrontMatterFromRecord(customField: {[key:string]:string}, record: IHttpResponse<ICreateRecordsResponseData> | undefined){
+    getFrontMatterFromFields(customField: {[key:string]:string}, fields:any, recordId: string){
         let data:any = {};
-        if(!record || !record.success)
-            return null;
         for(const key of Object.keys(customField)){
-            let value = record.data.records[0].fields[key];
+            let value = fields[key];
             data[key] = value || "";
         }
-        data["uid"] = record.data?.records[0]?.recordId;
+        data["uid"] = recordId;
         data["vikaLink"] = this.vika.getURL(data["uid"]);
-        data["tags"] = record.data?.records[0]?.fields["Tags"] || [""];
-        data["aliases"] = record.data?.records[0]?.fields["Aliases"] || [""];
+        data["tags"] = fields["Tags"] || [""];
+        data["aliases"] = fields["Aliases"] || [""];
         return data;
     }
+
 
     async createRecord() {
         const msg = await this.updateInfo();
@@ -329,20 +328,14 @@ class MyNote {
     async recoverFullContentFromRecord(record: IHttpResponse<ICreateRecordsResponseData> | undefined){
         if(!record || !record.success)
             return null;
-        // const fields = record?.data.records[0].fields;
-        // let fm_dict = this.parseFrontMatterDict(this.frontmatter);
-        // fm_dict = Object.assign(fm_dict, this.getFrontMatterFromRecord(this.settings.recoverField, record));
-        // let fm_text = this.dumpsFrontMatter(fm_dict);
-        // let full_content = fm_text + fields["Content"];
-        // this.app.vault.modify(this.file, full_content);
-
         for (const i of record.data.records){
             const fields = i.fields;
-            let fm_dict = this.parseFrontMatterDict(this.frontmatter);
-            fm_dict = Object.assign(fm_dict, this.getFrontMatterFromRecord(this.settings.recoverField, record));
+            const recordId = i.recordId;
+
+            let fm_dict = this.getFrontMatterFromFields(this.settings.recoverField, fields, recordId);
             let fm_text = this.dumpsFrontMatter(fm_dict);
             let full_content = fm_text + fields["Content"];
-            const filePath = this.folder + "/" + fields["Title"] + ".md";
+            let filePath = this.folder + "/" + fields["Title"] + ".md";
             
             await this.app.vault.adapter.write(filePath, full_content);
         }
@@ -372,7 +365,10 @@ class MyNote {
         if(!record || !record.success)
             return null;
         let fm_dict = this.parseFrontMatterDict(this.frontmatter);
-        fm_dict = Object.assign(fm_dict, this.getFrontMatterFromRecord(this.settings.recoverField, record));
+        
+        let fields = record.data.records[0].fields;
+        let recordId = record.data.records[0].recordId;
+        fm_dict = Object.assign(fm_dict, this.getFrontMatterFromFields(this.settings.recoverField, fields, recordId));
         let fm_text = this.dumpsFrontMatter(fm_dict);
         let full_content = fm_text + this.content;
         this.app.vault.modify(this.file, full_content);
