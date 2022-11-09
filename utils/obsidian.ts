@@ -51,10 +51,10 @@ class MyObsidian {
         let note: MyNote = new MyNote(this.app, file, this.vika, this.settings);
         let res = await note.createRecord();
         if(res.success) {
-            new Notice(`create ${file.name} success`);
+            new Notice(`Create ${file.name} success`);
         }
         else {
-            new Notice(`${file.name} : ${res.message}`);
+            new Notice(`${file.name}: ${res.message}`);
         }
         return res;
     }
@@ -67,10 +67,10 @@ class MyObsidian {
         let note: MyNote = new MyNote(this.app, file, this.vika, this.settings);
         let res = await note.updateRecord();
         if(res.success) {
-            new Notice(`update ${file.name} success`);
+            new Notice(`Update ${file.name} success`);
         }
         else {
-            new Notice(`${file.name} : ${res.message}`);
+            new Notice(`${file.name}: ${res.message}`);
         }
         return res;
     }
@@ -82,6 +82,15 @@ class MyObsidian {
         }
         let note: MyNote = new MyNote(this.app, file, this.vika, this.settings);
         let res = await note.deleteRecord();
+        if(!res){
+            new Notice(`${file.name} uid not found`);
+        }
+        else if(!res.success){
+            new Notice(`${file.name}: ${res.message}, delete failed`);
+        }
+        else {
+            new Notice(`${file.name} delete success`);
+        }
         return res;
     }
 
@@ -96,10 +105,10 @@ class MyObsidian {
             new Notice(`${file.name} uid not found`);
         }
         else if (res.success) {
-            new Notice(`recover ${file.name} success`);
+            new Notice(`Download ${file.name} success`);
         }
         else {
-            new Notice(`${file.name} : ${res.message}`);
+            new Notice(`${file.name}: ${res.message}, Download failed`);
         }
         return res;
     }
@@ -115,17 +124,17 @@ class MyObsidian {
                 let note: MyNote = new MyNote(this.app, file, this.vika, this.settings);
                 let res = await note.updateRecord();
                 if(res.success) {
-                    new Notice(`update ${file.name} success`);
+                    new Notice(`Update ${file.name} success`);
                 } 
                 else if (res.code == 429) {
                     files.push(file);
                 }
                 else {
-                    new Notice(`${file.name} : ${res.message}`);
+                    new Notice(`${file.name}: ${res.message}, update failed`);
                 }
             }
         }
-        new Notice("update finished");
+        new Notice(`Update Note in Folder: ${file.parent.path} finished`);
     }
 
     async updateAllRecord() {
@@ -134,16 +143,16 @@ class MyObsidian {
             let note: MyNote = new MyNote(this.app, file, this.vika, this.settings);
             let res = await note.updateRecord();
             if(res.success) {
-                new Notice(`update ${file.name} success`);
+                new Notice(`Update ${file.name} success`);
             }
             else if (res.code == 429) {
                 files.push(file);
             } 
             else {
-                new Notice(`${file.name} : ${res.message}`);
+                new Notice(`${file.name}: ${res.message}, update failed`);
             }   
         }
-        new Notice("update finished");
+        new Notice(`Update Note in Vault: ${this.app.vault.getName()} finished`);
     }
 
     async getRecordInThisFolder(){
@@ -154,6 +163,12 @@ class MyObsidian {
         const folder = file.parent.path;
         let note: MyNote = new MyNote(this.app, file, this.vika, this.settings);
         let res = await note.getRecordInFolder(folder);
+        if(res.success){
+            new Notice(`${folder}: ${res.message} success`);
+        }
+        else {
+            new Notice(`${folder}: ${res.message} download failed`)
+        }
     }
 }
 
@@ -296,14 +311,14 @@ class MyNote {
             const record = await this.vika.deleteRecord(this.uid)
             if(!record.success){
                 console.log(this.uid);
-                return null;    
+                return record;    
             }
             this.app.vault.trash(this.file, false);
-            return true;
+            return record;
         }
         else{
             this.app.vault.trash(this.file, false);
-            return false;
+            return null;
         }
     }
 

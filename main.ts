@@ -62,20 +62,18 @@ export default class VikaSyncPlugin extends Plugin {
 			id: 'vika-sync-delete-note-record',
 			name: 'Delete this Note & Record',
 			callback: () => {
-				this.ob.deleteRecordAndThisPage().then(res=> {
-					res === true?new Notice("Record deleted"):new Notice("Record delete failed");
-				})
+				this.ob.deleteRecordAndThisPage()
 		}
 		});
 		this.addCommand({
 			id: 'vika-sync-recover-note',
-			name: 'Recover this Note from Record',
+			name: 'Download this Note from Record',
 			callback: () => {
 				this.ob.recoverFromRecord()
 			}});
 		this.addCommand({
 			id: 'vika-sync-recover-note-in-folder',
-			name: 'Recover Note in this Folder',
+			name: 'Download Note in this Folder',
 			callback: () => {
 				this.ob.getRecordInThisFolder()
 			}});
