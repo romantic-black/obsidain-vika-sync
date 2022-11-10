@@ -277,9 +277,21 @@ class MyNote {
         data["vikaLink"] = this.vika.getURL(data["uid"]);
         data["tags"] = fields["Tags"] || [""];
         data["aliases"] = fields["Aliases"] || [""];
+        this.AddQuotationInFrontMatter(data);
+
         return data;
     }
 
+    AddQuotationInFrontMatter(frontmatter:any){
+        for(let [key, value] of Object.entries(frontmatter)){
+            if(value instanceof Array){
+                frontmatter[key] = value.map((item) => item != ""?`"${item}"`:item);
+            }
+            else {
+                frontmatter[key] = value != ""? `"${value}"`:value;
+            }
+        }
+    }
 
     async createRecord() {
         const msg = await this.updateInfo();
@@ -387,7 +399,7 @@ class MyNote {
         let fm_text = this.dumpsFrontMatter(fm_dict);
         let full_content = fm_text + this.content;
         this.app.vault.modify(this.file, full_content);
-
+        
         this.updateInfo();
         return null;
     }
