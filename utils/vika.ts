@@ -45,8 +45,8 @@ class MyVika {
         return res;     
     }
 
-    getURL(uid: string) {
-        return `https://vika.cn/workbench/${this.datasheet.datasheetId}/${this.viewId}/${uid}`;
+    getURL(recordId: string) {
+        return `https://vika.cn/workbench/${this.datasheet.datasheetId}/${this.viewId}/${recordId}`;
     }
 }
 

@@ -1,8 +1,9 @@
-import { App, Editor, MarkdownView, Modal, Notice, MetadataCache, TFile, FileSystemAdapter,
+import { App, Editor, MarkdownView, Modal, Notice, MetadataCache, TFile,
     parseFrontMatterStringArray, getAllTags, FrontMatterCache, CachedMetadata, 
     parseFrontMatterAliases, parseFrontMatterEntry, moment } from 'obsidian';
 import { MyVika } from "utils/vika";
 import { ICreateRecordsResponseData, IHttpResponse } from '@vikadata/vika';
+import {SuggesterModal} from "utils/suggester";
 
 
 export {MyNote, MyObsidian};
@@ -214,10 +215,10 @@ class MyNote {
         this.folder = file.parent.path;
         const vaultName = encodeURI(file.vault.getName());
         let basicURL:string = `obsidian://open?vault=${vaultName}&file=${file.path}`; 
-        let advancedURL:string = `obsidian://advanced-uri?vault=${vaultName}&uid=`;
-        this.uid = this.frontmatter?.["uid"];
-        this.obsidianURI = this.uid? advancedURL + this.uid: basicURL;
+        let advancedURL:string = `obsidian://advanced-uri?vault=${vaultName}&vikaLink=`;
         this.vikaLink = this.frontmatter?.["vikaLink"];
+        this.uid = this.vikaLink?.split("/").pop();
+        this.obsidianURI = this.uid? advancedURL + this.vikaLink: basicURL;
         this.vault = file.vault.getName();
         let ctime = moment(new Date(file.stat.ctime));
         let mtime = moment(new Date(file.stat.mtime));
@@ -273,8 +274,7 @@ class MyNote {
             let value = fields[key];
             data[key] = value || "";
         }
-        data["uid"] = recordId;
-        data["vikaLink"] = this.vika.getURL(data["uid"]);
+        data["vikaLink"] = this.vika.getURL(recordId);
         data["tags"] = fields["Tags"] || [""];
         data["aliases"] = fields["Aliases"] || [""];
         this.AddQuotationInFrontMatter(data);
@@ -376,7 +376,7 @@ class MyNote {
         if (!fm)
             return fm_dict;
         for(let [key, value] of Object.entries(fm).filter(([key, value]) =>
-         !["position", "Tags", "tags", "Tag", "tag", "Aliases", "aliases", "Alias", "alias", "uid", "vikaLink"].includes(key)))
+         !["position", "Tags", "tags", "Tag", "tag", "Aliases", "aliases", "Alias", "alias", "vikaLink"].includes(key)))
         {
             if (value instanceof Array) {
                 let arrayData = parseFrontMatterStringArray(fm, key) || "";
