@@ -22,23 +22,16 @@ interface VikaPluginSettings {
 
 class MyVika {
     vika: Vika;
-    currentDatasheet: Datasheet;
     datasheetList: Array<INodeItem>;
-    viewList: Array<any>;
+    viewDict: any;
     constructor(token: string) {
         this.vika = new Vika({ token: token });
     }
 
-    async getDatasheet(datasheetId:string) {
-        this.currentDatasheet = this.vika.datasheet(datasheetId);
-        const res = await (await this.currentDatasheet.views.list())
-        if(res.success){
-            this.viewList = res.data.views;
-        }
-    }
 
     async getAllDatasheetInfo() {
         const spaceListResp = await this.vika.spaces.list()
+        this.viewDict = {};
         if (!spaceListResp.success) {
             return;
         }
@@ -58,6 +51,8 @@ class MyVika {
                 }
                 else if(node.type === "datasheet"){
                     this.datasheetList.push(node);
+                    let view = await (await this.vika.datasheet(node.id).views.list())
+                    this.viewDict[node.id] = view.data?.views.find(view => view.type === "Grid")?.id;
                 }
             }
         }
@@ -67,41 +62,43 @@ class MyVika {
         let text_items = this.datasheetList.map(item => item.name);
         let items = this.datasheetList.map(item => item.id);
         let selector = new SuggesterModal(text_items, items, "Choose your datasheet", 20);
-        let id:string = "";
+        let id:string|undefined = undefined;
         await selector.openAndGetValue(item => id = item);
-        await this.getDatasheet(id);
+        return id;
     }
 
-    async createRecord(fields: any) {
-        const res = await this.currentDatasheet.records.create([{fields: fields}]);
+    async createRecord(fields: any, datasheetId: string) {
+        const res = await this.vika.datasheet(datasheetId).records.create([{fields: fields}]);
         return res;
     }
 
-    async updateRecord(uid:string, fields: any) {
-        const res = await this.currentDatasheet.records.update([{"recordId": uid, "fields": fields}]);
+    async updateRecord(uid:string, fields: any, datasheetId: string) {
+        const res = await this.vika.datasheet(datasheetId).records.update([{"recordId": uid, "fields": fields}]);
         return res;
     }
 
-    async deleteRecord(uid:string) {
-        const res = await this.currentDatasheet.records.delete(uid);
+    async deleteRecord(uid:string, datasheetId: string) {
+        const res = await this.vika.datasheet(datasheetId).records.delete(uid);
         return res;
     }
 
-    async getRecord(uid: string) {
-        const res = await this.currentDatasheet.records.get(uid);
+    async getRecord(uid: string, datasheetId: string) {
+        const res = await this.vika.datasheet(datasheetId).records.get(uid);
         return res;
     }
 
-    async getRecordInFolder(folder: string) {
-        const res = await this.currentDatasheet.records.query({
+    async getRecordInFolder(folder: string, datasheetId: string) {
+        const res = await this.vika.datasheet(datasheetId).records.query({
             filterByFormula: `find("${folder}", {Folder}) > 0`,
         });
         return res;     
     }
 
-    getURL(recordId: string) {
-        const datasheetId = this.currentDatasheet.datasheetId;
-        const viewId = this.viewList.filter(view => view.type === "Grid")[0];
+    getURL(recordId: string, datasheetId: string) {
+        const viewId = this.viewDict[datasheetId];
+        if (!viewId || !viewId.startsWith("viw")) {
+            return undefined;
+        }
         return `https://vika.cn/workbench/${datasheetId}/${viewId}/${recordId}`;
     }
 }
