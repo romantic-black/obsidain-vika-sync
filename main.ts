@@ -4,27 +4,33 @@ import { MyNote, MyObsidian } from "utils/obsidian";
 
 // Remember to rename these classes and interfaces!
 
-interface VikaSyncSettings {
-	token: string;
-	datasheet: string;
-	view: string;
+const DEFAULT_CUSTOM_FIELD:Datasheet = {
+	id: "",
+	name: "",
+	updateField: {
+		"type": "笔记",
+		"description":[]
+	},
+	recoverField: {
+		"type": "",
+		"description":""
+	}
+}
+
+interface Datasheet{
+	id: string;
+	name: string;
 	updateField: any;
 	recoverField: any;
 }
 
-const DEFAULT_SETTINGS: VikaSyncSettings = {
-	token: "",
-	datasheet: "",
-	view: "",
-	updateField: {
-			"type": "笔记", 
-			"description": []
-	},
-	recoverField: {"type": ""}
+interface VikaPluginSettings {
+	token: string;
+	datasheetList: Array<Datasheet>;
 }
 
 export default class VikaSyncPlugin extends Plugin {
-	settings: VikaSyncSettings;
+	settings: VikaPluginSettings;
 	vika: MyVika;
 	ob: MyObsidian;
 	async onload() {
@@ -86,8 +92,8 @@ export default class VikaSyncPlugin extends Plugin {
 	}
 
 	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
-		this.vika = new MyVika(this.settings.token, this.settings.datasheet, this.settings.view);
+		this.settings = Object.assign({}, await this.loadData());
+		this.vika = new MyVika(this.settings.token);
 		this.ob = new MyObsidian(this.app, this.vika, this.settings);
 	}
 
@@ -117,8 +123,11 @@ class SettingTab extends PluginSettingTab {
 
 		containerEl.createEl('h2', {text: 'Vika Sync Settings'});
 
+		containerEl.createEl('h3', {text: 'Vika Token'});
+
 		new Setting(containerEl)
-			.setName('Token: 从 vika 的 API 页面获取')
+			.setName('Token')
+			.setDesc("从Vika的API设置中获取")
 			.addText(text => text
 				.setPlaceholder('')
 				.setValue(this.plugin.settings.token)
@@ -126,55 +135,61 @@ class SettingTab extends PluginSettingTab {
 					this.plugin.settings.token = value;
 					await this.plugin.saveSettings();
 				}));
+		
 		new Setting(containerEl)
-			.setName('Datasheet: 从 vika 的行链接中获取, 形如 dstbcfEH6FLs45VZfi')
-			.addText(text => text
-				.setPlaceholder('')
-				.setValue(this.plugin.settings.datasheet)
-				.onChange(async (value) => {
-					this.plugin.settings.datasheet = value;
-					await this.plugin.saveSettings();
-				}));
-
-		new Setting(containerEl)
-			.setName('View: 从 vika 的行链接中获取, 形如 viwayRfjHdoW1')
-			.addText(text => text
-				.setPlaceholder('')
-				.setValue(this.plugin.settings.view)
-				.onChange(async (value) => {
-					this.plugin.settings.view = value;
-					await this.plugin.saveSettings();
-				}));
-		new Setting(containerEl)
-			.setName('自定义上传字段: 字段会从 frontmatter 上传至 vika, 同时具有默认值')
-			.addText(text => text
-				.setPlaceholder("")
-				.setValue(JSON.stringify(this.plugin.settings.updateField))
-				.onChange(async (value) => {
-					try {
-						let json = JSON.parse(value);
-						this.plugin.settings.updateField = json;
-						text.inputEl.style.border = "1px solid green";
-						await this.plugin.saveSettings();
+			.addButton(cb => {this.plugin.vika.getAllDatasheetInfo().then(
+				() => {
+					let nameList = this.plugin.vika.datasheetList.map((item) => item.name);
+					let idList = this.plugin.vika.datasheetList.map((item) => item.id);
+					let datasheetList = this.plugin.settings.datasheetList 
+					let tmpList = [];
+					for(let i = 0; i < nameList.length; i++){
+						let tmp = datasheetList.find((item) => item.id == idList[i]);
+						if(!tmp){
+							tmp = DEFAULT_CUSTOM_FIELD;
+						}
+						tmp.id = idList[i];
+						tmp.name = nameList[i];
+						tmpList.push(tmp);
 					}
-					catch (e) {
-						text.inputEl.style.border = "1px solid red";
-					}}));	
+					this.plugin.settings.datasheetList = tmpList;
+				}
+			).then(() => {
+				containerEl.createEl('h3', {text: 'Datasheet Settings'});
+				for(let dst of this.plugin.settings.datasheetList){
+					containerEl.createEl('h4', {text: dst.name});
+					new Setting(containerEl)
+						.setName('Update Field')
+						.setDesc("自定义更新字段与默认值")
+						.addTextArea(text => text
+							.setPlaceholder("")
+							.setValue(JSON.stringify(dst.updateField))
+							.onChange(async (value) => {
+								try{								
+									dst.updateField = JSON.parse(value);
+									text.inputEl.style.border = "1px solid green";
+									await this.plugin.saveSettings();
+								} catch (e) {
+									text.inputEl.style.border = "1px solid red";
+								}
 
-		new Setting(containerEl)
-			.setName('自定义下载字段: 字段会被下载到 frontmatter')
-			.addText(text => text
-				.setPlaceholder("")
-				.setValue(JSON.stringify(this.plugin.settings.recoverField))
-				.onChange(async (value) => {
-					try {
-						let json = JSON.parse(value);
-						this.plugin.settings.recoverField = json;
-						text.inputEl.style.border = "1px solid green";
-						await this.plugin.saveSettings();
-					}
-					catch (e) {
-						text.inputEl.style.border = "1px solid red";
-					}}));
+							}));
+					new Setting(containerEl)
+						.setName('Recover Field')
+						.setDesc("自定义下载字段")
+						.addTextArea(text => text
+							.setPlaceholder("")
+							.setValue(JSON.stringify(dst.recoverField))
+							.onChange(async (value) => {
+								try{								
+									dst.recoverField = JSON.parse(value);
+									text.inputEl.style.border = "1px solid green";
+									await this.plugin.saveSettings();
+								} catch (e) {
+									text.inputEl.style.border = "1px solid red";
+								}
+							}));
+			}})
+			.catch(e => new Notice(e))});
 	}
 }
