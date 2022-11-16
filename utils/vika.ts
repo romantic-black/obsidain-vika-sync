@@ -7,6 +7,18 @@ import { execSync, exec } from "child_process";
 import { Datasheet} from "@vikadata/vika/es/datasheet";
 import { throws } from "assert";
 
+interface MyDatasheet{
+	id: string;
+	name: string;
+	updateField: any;
+	recoverField: any;
+}
+
+interface VikaPluginSettings {
+	token: string;
+	datasheetList: Array<MyDatasheet>;
+}
+
 
 class MyVika {
     vika: Vika;
@@ -96,3 +108,4 @@ class MyVika {
 
 
 export { MyVika };
+export type { VikaPluginSettings };

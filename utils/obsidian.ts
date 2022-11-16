@@ -1,7 +1,7 @@
 import { App, Editor, MarkdownView, Modal, Notice, MetadataCache, TFile,
     parseFrontMatterStringArray, getAllTags, FrontMatterCache, CachedMetadata, 
     parseFrontMatterAliases, parseFrontMatterEntry, moment } from 'obsidian';
-import { MyVika } from "utils/vika";
+import { MyVika, VikaPluginSettings } from "utils/vika";
 import { ICreateRecordsResponseData, IHttpResponse } from '@vikadata/vika';
 import {SuggesterModal} from "utils/suggester";
 
@@ -37,7 +37,7 @@ class MyObsidian {
     vault: any;
     vika: MyVika;
     settings: any;
-    constructor(app: App, vika: MyVika, settings: any) {
+    constructor(app: App, vika: MyVika, settings: VikaPluginSettings) {
         this.app = app;
         this.vault = app.vault;
         this.vika = vika;
@@ -194,7 +194,7 @@ class MyNote {
     id: string;
     createTime: string;
     updateTime: string;
-    settings: any;
+    settings: VikaPluginSettings;
     constructor(app: App, file: TFile, vika: MyVika, settings: any) {
         this.app = app;
         this.file = file;

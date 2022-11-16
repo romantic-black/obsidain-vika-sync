@@ -1,10 +1,10 @@
 import { App, Editor, MarkdownView, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
-import { MyVika } from "utils/vika";
+import { MyVika, VikaPluginSettings } from "utils/vika";
 import { MyNote, MyObsidian } from "utils/obsidian";
 
 // Remember to rename these classes and interfaces!
 
-const DEFAULT_CUSTOM_FIELD:Datasheet = {
+const DEFAULT_CUSTOM_FIELD = {
 	id: "",
 	name: "",
 	updateField: {
@@ -17,17 +17,6 @@ const DEFAULT_CUSTOM_FIELD:Datasheet = {
 	}
 }
 
-interface Datasheet{
-	id: string;
-	name: string;
-	updateField: any;
-	recoverField: any;
-}
-
-interface VikaPluginSettings {
-	token: string;
-	datasheetList: Array<Datasheet>;
-}
 
 export default class VikaSyncPlugin extends Plugin {
 	settings: VikaPluginSettings;
