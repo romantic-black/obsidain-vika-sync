@@ -1,16 +1,13 @@
 import { Vika, INodeItem } from "@vikadata/vika";
 import {SuggesterModal} from "utils/suggester";
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
-import { resolve, extname, relative, join, parse, posix } from "path";
-import { readdirSync, statSync, readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
-import { execSync, exec } from "child_process";
-import { Datasheet} from "@vikadata/vika/es/datasheet";
-import { throws } from "assert";
+
 
 interface MyDatasheet{
 	id: string;
 	name: string;
-	updateField: any;
+	viewId: string;
+    updateField: any;
 	recoverField: any;
 }
 
@@ -22,47 +19,61 @@ interface VikaPluginSettings {
 
 class MyVika {
     vika: Vika;
-    datasheetList: Array<INodeItem>;
-    viewDict: any;
-    constructor(token: string) {
-        this.vika = new Vika({ token: token });
+    datasheetList: Array<MyDatasheet>;
+    constructor(settings: VikaPluginSettings) {
+        this.vika = new Vika({ token: settings.token });
+        this.datasheetList = settings.datasheetList;
     }
 
-
     async getAllDatasheetInfo() {
-        const spaceListResp = await this.vika.spaces.list()
-        this.viewDict = {};
+        const spaceListResp = await this.vika.spaces.list();
         if (!spaceListResp.success) {
             return;
         }
-        let spaces = spaceListResp.data.spaces.filter(space => space.isAdmin);
+        let tmpList = [];
+        const spaces = spaceListResp.data.spaces.filter(space => space.isAdmin);
         for(let space of spaces) {
             const nodeListResp = await this.vika.nodes.list({spaceId: space.id})
             if (!nodeListResp.success) {
                 continue;
             }
+            
             let nodes = nodeListResp.data.nodes;
             for(let node of nodes) {
-                if(node.type === "folder"){
+                if(node.type === "Folder"){
                     const folderDetailResp = await this.vika.nodes.get({spaceId: space.id, nodeId: node.id})
                     if (folderDetailResp.success && folderDetailResp.data.children) {
                         nodes.push(...folderDetailResp.data.children);
                     }
+                    else if(folderDetailResp.code == 429){
+                        nodes.push(node);
+                    }
                 }
-                else if(node.type === "datasheet"){
-                    this.datasheetList.push(node);
-                    let view = await (await this.vika.datasheet(node.id).views.list())
-                    this.viewDict[node.id] = view.data?.views.find(view => view.type === "Grid")?.id;
+                else if(node.type === "Datasheet"){
+                    let view = (await this.vika.datasheet(node.id).views.list()).data?.views.find(view => view.type === "Grid")?.id;
+                    if(view){
+                        tmpList.push({id: node.id, name: node.name, updateField: {}, recoverField: {}, viewId: view});
+                    }
                 }
             }
         }
+
+        for(let item of tmpList){
+            let tmp = this.datasheetList.find(i => i.id === item.id);
+            if(tmp){
+                item.updateField = tmp.updateField;
+                item.recoverField = tmp.recoverField;
+            }
+        }
+
+        this.datasheetList = tmpList;
     }
 
     async selectDatasheet(){
         let text_items = this.datasheetList.map(item => item.name);
         let items = this.datasheetList.map(item => item.id);
         let selector = new SuggesterModal(text_items, items, "Choose your datasheet", 20);
-        let id:string|undefined = undefined;
+        let id: string|undefined = undefined;
         await selector.openAndGetValue(item => id = item);
         return id;
     }
@@ -95,10 +106,7 @@ class MyVika {
     }
 
     getURL(recordId: string, datasheetId: string) {
-        const viewId = this.viewDict[datasheetId];
-        if (!viewId || !viewId.startsWith("viw")) {
-            return undefined;
-        }
+        const viewId = this.datasheetList.find(item => item.id === datasheetId)?.viewId;
         return `https://vika.cn/workbench/${datasheetId}/${viewId}/${recordId}`;
     }
 }
