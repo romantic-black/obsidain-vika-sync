@@ -3,7 +3,7 @@ import { App, Editor, MarkdownView, Modal, Notice, MetadataCache, TFile,
     parseFrontMatterAliases, parseFrontMatterEntry, moment } from 'obsidian';
 import { MyVika, VikaPluginSettings } from "utils/vika";
 import { ICreateRecordsResponseData, IHttpResponse } from '@vikadata/vika';
-import {SuggesterModal} from "utils/suggester";
+import { generate_suggester } from "utils/suggester";
 
 
 export {MyNote, MyObsidian};
@@ -132,27 +132,28 @@ class MyObsidian {
             return;
         }
         for (let file of files) {
-            if(file instanceof TFile && file.extension == "md") {
+            if(file instanceof TFile && file.extension === "md") {
                 let note: MyNote = new MyNote(this.app, file, this.vika, this.settings);
                 let res = await note.updateRecord();
-                if(!res){
+                if(!res || !res.success) {
+                    if (res?.code == 429){
+                        files.push(file);
+                        continue;
+                    }
                     res = await note.createRecord(datasheetId);
                     if(!res.success){
                         new Notice(`${file.name}: ${res.message}, create failed`);
+                    }
+                    else if(res.code == 429){
+                        files.push(file);
                     }
                     else {
                         new Notice(`${file.name} create success`);
                     }
                 }
-                else if(res.success) {
+                else {
                     new Notice(`Update ${file.name} success`);
                 } 
-                else if (res.code == 429) {
-                    files.push(file);
-                }
-                else {
-                    new Notice(`${file.name}: ${res.message}, update failed`);
-                }
             }
         }
         new Notice(`Update Note in Folder: ${file.parent.path} finished`);
@@ -168,24 +169,25 @@ class MyObsidian {
         for (let file of files) {
             let note: MyNote = new MyNote(this.app, file, this.vika, this.settings);
             let res = await note.updateRecord();
-            if(!res){
+            if(!res || !res.success){
+                if (res?.code == 429){
+                    files.push(file);
+                    continue;
+                }
                 res = await note.createRecord(datasheetId);
                 if(!res.success){
                     new Notice(`${file.name}: ${res.message}, create failed`);
+                }
+                else if(res.code == 429){
+                    files.push(file);
                 }
                 else {
                     new Notice(`${file.name} create success`);
                 }
             }
-            else if(res.success) {
+            else {
                 new Notice(`Update ${file.name} success`);
             }
-            else if (res.code == 429) {
-                files.push(file);
-            } 
-            else {
-                new Notice(`${file.name}: ${res.message}, update failed`);
-            }   
         }
         new Notice(`Update Note in Vault: ${this.app.vault.getName()} finished`);
     }
@@ -279,7 +281,7 @@ class MyNote {
         this.id = ctime.format("YYYYMMDDHHMMSS");
         this.getLinks();
 
-        let update = this.settings.datasheetList.find((item) => item.id == this.dstId) || {};
+        let update = this.settings.datasheetList.find((item) => item.id == this.dstId)?.updateField || {};
         update = this.getCustomFieldsFromFrontMatter(update, this.frontmatter);
 
         this.content = await this.app.vault.read(this.file);
@@ -413,7 +415,7 @@ class MyNote {
         for (const i of record.data.records){
             const fields = i.fields;
             const recordId = i.recordId;
-            const recoverField = this.settings.datasheetList.find((item) => item.id == this.dstId) || {};
+            const recoverField = this.settings.datasheetList.find((item) => item.id == this.dstId)?.recoverField || {};
             let fm_dict = this.getFrontMatterFromFields(recoverField, fields, recordId);
             let fm_text = this.dumpsFrontMatter(fm_dict);
             let full_content = fm_text + fields["Content"];
@@ -448,7 +450,7 @@ class MyNote {
         
         let fields = record.data.records[0].fields;
         let recordId = record.data.records[0].recordId;
-        const recoverField = this.settings.datasheetList.find((item) => item.id == this.dstId) || {};
+        const recoverField = this.settings.datasheetList.find((item) => item.id == this.dstId)?.updateField || {};
         fm_dict = Object.assign(fm_dict, this.getFrontMatterFromFields(recoverField, fields, recordId));
         let fm_text = this.dumpsFrontMatter(fm_dict);
         let full_content = fm_text + this.content;
