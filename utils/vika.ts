@@ -1,5 +1,5 @@
 import { Vika, INodeItem } from "@vikadata/vika";
-import {SuggesterModal} from "utils/suggester";
+import { generate_suggester } from "utils/suggester";
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
 
 
@@ -72,10 +72,9 @@ class MyVika {
     async selectDatasheet(){
         let text_items = this.datasheetList.map(item => item.name);
         let items = this.datasheetList.map(item => item.id);
-        let selector = new SuggesterModal(text_items, items, "Choose your datasheet", 20);
-        let id: string|undefined = undefined;
-        await selector.openAndGetValue(item => id = item);
-        return id;
+        let selector = generate_suggester();
+        let res = await selector(text_items, items, false, "Choose a datasheet", 20);
+        return res;
     }
 
     async createRecord(fields: any, datasheetId: string) {
@@ -102,7 +101,7 @@ class MyVika {
         const res = await this.vika.datasheet(datasheetId).records.query({
             filterByFormula: `find("${folder}", {Folder}) > 0`,
         });
-        return res;     
+        return res;
     }
 
     getURL(recordId: string, datasheetId: string) {

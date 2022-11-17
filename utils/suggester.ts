@@ -53,3 +53,39 @@ export class SuggesterModal<T> extends FuzzySuggestModal<T> {
         this.open();
     }
 }
+
+export function generate_suggester(): <T>(
+    text_items: string[] | ((item: T) => string),
+    items: T[],
+    throw_on_cancel: boolean,
+    placeholder: string,
+    limit?: number
+) => Promise<T> {
+    return async <T>(
+        text_items: string[] | ((item: T) => string),
+        items: T[],
+        throw_on_cancel = false,
+        placeholder = "",
+        limit?: number
+    ): Promise<T> => {
+        const suggester = new SuggesterModal(
+            text_items,
+            items,
+            placeholder,
+            limit
+        );
+        const promise = new Promise(
+            (
+                resolve: (value: T) => void,
+            ) => suggester.openAndGetValue(resolve)
+        );
+        try {
+            return await promise;
+        } catch (error) {
+            if (throw_on_cancel) {
+                throw error;
+            }
+            return null as unknown as T;
+        }
+    };
+}
