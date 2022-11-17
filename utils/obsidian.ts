@@ -1,6 +1,6 @@
 import { App, Editor, MarkdownView, Modal, Notice, MetadataCache, TFile,
     parseFrontMatterStringArray, getAllTags, FrontMatterCache, CachedMetadata, 
-    parseFrontMatterAliases, parseFrontMatterEntry, moment } from 'obsidian';
+    parseFrontMatterAliases, parseFrontMatterEntry, moment, TAbstractFile } from 'obsidian';
 import { MyVika, VikaPluginSettings } from "utils/vika";
 import { ICreateRecordsResponseData, IHttpResponse } from '@vikadata/vika';
 import { generate_suggester } from "utils/suggester";
@@ -102,6 +102,8 @@ class MyObsidian {
         return res;
     }
 
+    
+
     async recoverFromRecord() {
         let file: TFile|null = this.app.workspace.getActiveFile();
         if (!file) {
@@ -121,16 +123,40 @@ class MyObsidian {
         return res;
     }
 
-    async updateRecordInThisFolder() {
-        let file: TFile|null = this.app.workspace.getActiveFile();
-        if (!file) {
-            return null;
+    async createRecordFromFiles(files: Array<TAbstractFile>, datasheetId: string) {
+        for (let file of files) {
+            if(file instanceof TFile && file.extension === "md") {
+                let note: MyNote = new MyNote(this.app, file, this.vika, this.settings);
+                let res = await note.createRecord(datasheetId);
+                if(!res.success){
+                    new Notice(`${file.name}: ${res.message}, create failed`);
+                }
+                else if(res.code == 429){
+                    files.push(file);
+                }
+                else {
+                    new Notice(`${file.name} create success`);
+                }
+            }
         }
-        const files = file.parent.children;
-        const datasheetId = await this.vika.selectDatasheet()
-        if(!datasheetId) {
-            return;
+    }
+
+    async updateRecordFromFiles(files: Array<TAbstractFile>) {
+        for (let file of files) {
+            if(file instanceof TFile && file.extension === "md") {
+                let note: MyNote = new MyNote(this.app, file, this.vika, this.settings);
+                let res = await note.updateRecord();
+                if(!res || !res.success) {
+                    new Notice(`${file.name}: ${res?.message}, update failed`);
+                }
+                else {
+                    new Notice(`Update ${file.name} success`);
+                } 
+            }
         }
+    }
+
+    async updateOrCreateRecordFromFiles(files: Array<TAbstractFile>, datasheetId: string) {
         for (let file of files) {
             if(file instanceof TFile && file.extension === "md") {
                 let note: MyNote = new MyNote(this.app, file, this.vika, this.settings);
@@ -156,40 +182,75 @@ class MyObsidian {
                 } 
             }
         }
-        new Notice(`Update Note in Folder: ${file.parent.path} finished`);
     }
+
+    async selecctUpdataMethod() {
+        const text_items = ["只进行更新（推荐）", "更新或创建", "全部重新创建"];
+        const items = [1, 2, 3];
+        const selector = await generate_suggester()(text_items, items, false, "选择操作类型", 5); 
+        return selector;
+    }
+
+    async updateRecordInThisFolder() {
+        let file: TFile|null = this.app.workspace.getActiveFile();
+        if (!file) {
+            return;
+        }
+        const files = file.parent.children;
+        const selector = await this.selecctUpdataMethod();
+        switch(selector) {
+            case 1:
+                this.updateRecordFromFiles(files);
+                break;
+            case 2:
+                const datasheetId = await this.vika.selectDatasheet()
+                if(!datasheetId) {
+                    return;
+                }
+                this.updateOrCreateRecordFromFiles(files, datasheetId);
+                break;
+            case 3:
+                const datasheetId2 = await this.vika.selectDatasheet()
+                if(!datasheetId2) {
+                    return;
+                }
+                this.createRecordFromFiles(files, datasheetId2);
+                break;
+        }
+        new Notice(`Update Note in Folder: ${file.parent.path} finished`);
+    }   
 
 
     async updateAllRecord() {
         let files = this.vault.getMarkdownFiles();
-        const datasheetId = await this.vika.selectDatasheet()
-        if(!datasheetId) {
-            return;
-        }
-        for (let file of files) {
-            let note: MyNote = new MyNote(this.app, file, this.vika, this.settings);
-            let res = await note.updateRecord();
-            if(!res || !res.success){
-                if (res?.code == 429){
-                    files.push(file);
-                    continue;
+        const selector = await this.selecctUpdataMethod();
+        switch(selector) {
+            case 1:
+                this.updateRecordFromFiles(files);
+                break;
+            case 2:
+                const datasheetId = await this.vika.selectDatasheet()
+                if(!datasheetId) {
+                    return;
                 }
-                res = await note.createRecord(datasheetId);
-                if(!res.success){
-                    new Notice(`${file.name}: ${res.message}, create failed`);
+                this.updateOrCreateRecordFromFiles(files, datasheetId);
+                break;
+            case 3:
+                const datasheetId2 = await this.vika.selectDatasheet()
+                if(!datasheetId2) {
+                    return;
                 }
-                else if(res.code == 429){
-                    files.push(file);
-                }
-                else {
-                    new Notice(`${file.name} create success`);
-                }
-            }
-            else {
-                new Notice(`Update ${file.name} success`);
-            }
+                this.createRecordFromFiles(files, datasheetId2);
+                break;
         }
         new Notice(`Update Note in Vault: ${this.app.vault.getName()} finished`);
+    }
+
+    async selectRecoverMethod() {
+        const text_items = ["下载新笔记", "全部下载", "覆盖已有笔记"];
+        const items = [1, 2, 3];
+        const selector = await generate_suggester()(text_items, items, false, "选择操作类型", 5);
+        return selector;
     }
 
     async getRecordInThisFolder(){
