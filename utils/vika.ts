@@ -3,6 +3,19 @@ import { generate_suggester } from "utils/suggester";
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
 
 
+const DEFAULT_CUSTOM_FIELD = {
+
+	updateField: {
+		"type": "笔记",
+		"description":[]
+	},
+	recoverField: {
+		"type": "",
+		"description":""
+	}
+}
+
+
 interface MyDatasheet{
 	id: string;
 	name: string;
@@ -52,14 +65,14 @@ class MyVika {
                 else if(node.type === "Datasheet"){
                     let view = (await this.vika.datasheet(node.id).views.list()).data?.views.find(view => view.type === "Grid")?.id;
                     if(view){
-                        tmpList.push({id: node.id, name: node.name, updateField: {}, recoverField: {}, viewId: view});
+                        tmpList.push({...DEFAULT_CUSTOM_FIELD ,id: node.id, name: node.name, viewId: view});
                     }
                 }
             }
         }
 
         for(let item of tmpList){
-            let tmp = this.datasheetList.find(i => i.id === item.id);
+            let tmp = this.datasheetList?.find(i => i.id === item.id);
             if(tmp){
                 item.updateField = tmp.updateField;
                 item.recoverField = tmp.recoverField;

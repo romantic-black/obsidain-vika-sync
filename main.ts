@@ -3,19 +3,10 @@ import { MyVika, VikaPluginSettings } from "utils/vika";
 import { MyNote, MyObsidian } from "utils/obsidian";
 
 
-const DEFAULT_CUSTOM_FIELD = {
-	id: "",
-	name: "",
-	updateField: {
-		"type": "笔记",
-		"description":[]
-	},
-	recoverField: {
-		"type": "",
-		"description":""
-	}
+const DEFAULT_SETTINGS: VikaPluginSettings = {
+	"token": "",
+	"datasheetList": []
 }
-
 
 export default class VikaSyncPlugin extends Plugin {
 	settings: VikaPluginSettings;
@@ -80,7 +71,7 @@ export default class VikaSyncPlugin extends Plugin {
 	}
 
 	async loadSettings() {
-		this.settings = Object.assign({}, await this.loadData());
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
 		this.vika = new MyVika(this.settings);
 		this.ob = new MyObsidian(this.app, this.vika, this.settings);
 	}
