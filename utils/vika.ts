@@ -119,6 +119,9 @@ class MyVika {
 
     getURL(recordId: string, datasheetId: string) {
         const viewId = this.datasheetList.find(item => item.id === datasheetId)?.viewId;
+        if (!viewId) {
+            return;
+        }
         return `https://vika.cn/workbench/${datasheetId}/${viewId}/${recordId}`;
     }
 }

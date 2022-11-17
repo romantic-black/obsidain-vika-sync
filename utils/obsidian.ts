@@ -395,8 +395,10 @@ class MyNote {
         data["vikaLink"] = this.dstId? this.vika.getURL(recordId, this.dstId) || "" : "";
         data["tags"] = fields["Tags"] || [""];
         data["aliases"] = fields["Aliases"] || [""];
+        if(data["vikaLink"] == ""){
+            new Notice(`vikaLink获取出现问题，请重新刷新数据表`);
+        }
         this.AddQuotationInFrontMatter(data);
-
         return data;
     }
 
@@ -488,7 +490,6 @@ class MyNote {
             
             await this.app.vault.adapter.write(filePath, full_content);
         }
-        this.updateInfo();
     }
 
     parseFrontMatterDict(fm: FrontMatterCache|undefined){
@@ -520,8 +521,6 @@ class MyNote {
         let fm_text = this.dumpsFrontMatter(fm_dict);
         let full_content = fm_text + this.content;
         this.app.vault.modify(this.file, full_content);
-        
-        this.updateInfo();
         return;
     }
 

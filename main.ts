@@ -97,7 +97,6 @@ class SettingTab extends PluginSettingTab {
 		this.settingsEl = [];
 	}
 
-
 	reloadSetting(datasheet: any[], containerEl: HTMLElement) {
 		this.settingsEl.forEach((setting) => {
 			setting.settingEl.remove();
@@ -158,9 +157,15 @@ class SettingTab extends PluginSettingTab {
 			.addButton(async (cb) => {
 				cb.setButtonText("Refresh")
 				cb.onClick(async () => {
-					await this.plugin.vika.getAllDatasheetInfo();
-					this.plugin.settings.datasheetList = this.plugin.vika.datasheetList;
-					this.reloadSetting(this.plugin.settings.datasheetList, containerEl);
+					try {							
+						new Notice("Start Refresh");
+						await this.plugin.vika.getAllDatasheetInfo();
+						this.plugin.settings.datasheetList = this.plugin.vika.datasheetList;
+						this.reloadSetting(this.plugin.settings.datasheetList, containerEl);
+						new Notice("Refresh Success");
+					} catch (e) {
+						new Notice(`Refresh Failed: ${e}`);
+					}
 				})
 			}
 		);
