@@ -112,15 +112,16 @@ class SettingTab extends PluginSettingTab {
 			setting.settingEl.remove();
 		});
 
-		for(let dst of datasheet){
+		for(let index =0; index < datasheet.length; index++){
 			this.settingsEl.push(new Setting(containerEl)
-					.setName(dst.name)
-					.addTextArea(text => text
+					.setName(this.plugin.settings.datasheetList[index].name)
+					.addText(text => text
 						.setPlaceholder("")
-						.setValue(JSON.stringify(dst.updateField))
+						.setValue(JSON.stringify(this.plugin.settings.datasheetList[index].updateField))
 						.onChange(async (value) => {
 							try {								
-								dst.updateField = JSON.parse(value);
+								const json = JSON.parse(value);
+								this.plugin.settings.datasheetList[index].updateField = json;
 								text.inputEl.style.border = "1px solid green";
 								await this.plugin.saveSettings();
 							} catch (e) {
@@ -129,12 +130,12 @@ class SettingTab extends PluginSettingTab {
 						}
 					)
 				)
-				.addTextArea(text => text
+				.addText(text => text
 					.setPlaceholder("")
-					.setValue(JSON.stringify(dst.recoverField))
+					.setValue(JSON.stringify(this.plugin.settings.datasheetList[index].recoverField))
 					.onChange(async (value) => {
 						try{								
-							dst.recoverField = JSON.parse(value);
+							this.plugin.settings.datasheetList[index].recoverField = JSON.parse(value);
 							text.inputEl.style.border = "1px solid green";
 							await this.plugin.saveSettings();
 						} catch (e) {
