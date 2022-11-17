@@ -21,44 +21,44 @@ export default class VikaSyncPlugin extends Plugin {
 		}
 		this.addCommand({
 			id: 'vika-sync-create-record',
-			name: 'Create New Record for this Note',
+			name: 'Create: this Note',
 			callback: () => {
 				this.ob.createRecordInThisPage()
 			}});
 		this.addCommand({
 			id: 'vika-sync-update-note',
-			name: 'Update this Note',
+			name: 'Update: this Note',
 			callback: () => {
 				this.ob.updateRecordInThisPage()
 			}});
 		this.addCommand({
 			id: 'vika-sync-update-note-in-folder',
-			name: 'Update Note in this Folder',
+			name: 'Update: this Folder',
 			callback: () => {
 				this.ob.updateRecordInThisFolder()
 			}});
 		this.addCommand({
 			id: 'vika-sync-update-note-in-vault',
-			name: 'Update Note in this Vault',
+			name: 'Update: this Vault',
 			callback: () => {
 				this.ob.updateAllRecord();
 		}});
 		this.addCommand({
 			id: 'vika-sync-delete-note-record',
-			name: 'Delete this Note & Record',
+			name: 'Delete: this Note & Record',
 			callback: () => {
 				this.ob.deleteRecordAndThisPage()
 		}
 		});
 		this.addCommand({
 			id: 'vika-sync-recover-note',
-			name: 'Download this Note from Record',
+			name: 'Download: this Note',
 			callback: () => {
 				this.ob.recoverFromRecord()
 			}});
 		this.addCommand({
 			id: 'vika-sync-recover-note-in-folder',
-			name: 'Download Note in this Folder',
+			name: 'Download: this Folder',
 			callback: () => {
 				this.ob.getRecordInThisFolder()
 			}});
