@@ -1,8 +1,9 @@
-import { App, Editor, MarkdownView, Modal, Notice, MetadataCache, TFile, FileSystemAdapter,
+import { App, Editor, MarkdownView, Modal, Notice, MetadataCache, TFile,
     parseFrontMatterStringArray, getAllTags, FrontMatterCache, CachedMetadata, 
-    parseFrontMatterAliases, parseFrontMatterEntry, moment } from 'obsidian';
-import { MyVika } from "utils/vika";
+    parseFrontMatterAliases, parseFrontMatterEntry, moment, TAbstractFile } from 'obsidian';
+import { MyVika, VikaPluginSettings } from "utils/vika";
 import { ICreateRecordsResponseData, IHttpResponse } from '@vikadata/vika';
+import { generate_suggester } from "utils/suggester";
 
 
 export {MyNote, MyObsidian};
@@ -16,7 +17,7 @@ interface BasicFields {
     Aliases: Array<string>;
     Content: string;
     OutLinks: Array<string>;
-    BackLinks: Array<string>;
+    BackLinks: (undefined|string)[];
     UnresolvedOutLinks: Array<string>;
     OBURI: string;
     ID: string;
@@ -36,7 +37,7 @@ class MyObsidian {
     vault: any;
     vika: MyVika;
     settings: any;
-    constructor(app: App, vika: MyVika, settings: any) {
+    constructor(app: App, vika: MyVika, settings: VikaPluginSettings) {
         this.app = app;
         this.vault = app.vault;
         this.vika = vika;
@@ -46,15 +47,19 @@ class MyObsidian {
     async createRecordInThisPage() {
         let file: TFile|null = this.app.workspace.getActiveFile();
         if (!file) {
-            return null;
+            return;
         }
         let note: MyNote = new MyNote(this.app, file, this.vika, this.settings);
-        let res = await note.createRecord();
+        const datasheetId = await this.vika.selectDatasheet()
+        if(!datasheetId) {
+            return;
+        }
+        let res = await note.createRecord(datasheetId);
         if(res.success) {
             new Notice(`Create ${file.name} success`);
         }
         else {
-            new Notice(`${file.name}: ${res.message}`);
+            new Notice(`${file.name}: ${res.message}, create failed`);
         }
         return res;
     }
@@ -62,15 +67,18 @@ class MyObsidian {
     async updateRecordInThisPage() {
         let file: TFile|null = this.app.workspace.getActiveFile();
         if (!file) {
-            return null;
+            return;
         }
         let note: MyNote = new MyNote(this.app, file, this.vika, this.settings);
         let res = await note.updateRecord();
-        if(res.success) {
+        if(!res){
+            res = await this.createRecordInThisPage();
+        }
+        else if(res.success) {
             new Notice(`Update ${file.name} success`);
         }
         else {
-            new Notice(`${file.name}: ${res.message}`);
+            new Notice(`${file.name}: ${res.message}, update failed`);
         }
         return res;
     }
@@ -83,7 +91,7 @@ class MyObsidian {
         let note: MyNote = new MyNote(this.app, file, this.vika, this.settings);
         let res = await note.deleteRecord();
         if(!res){
-            new Notice(`${file.name} uid not found`);
+            new Notice(`${file.name} vikaLink not found`);
         }
         else if(!res.success){
             new Notice(`${file.name}: ${res.message}, delete failed`);
@@ -94,6 +102,8 @@ class MyObsidian {
         return res;
     }
 
+    
+
     async recoverFromRecord() {
         let file: TFile|null = this.app.workspace.getActiveFile();
         if (!file) {
@@ -102,7 +112,7 @@ class MyObsidian {
         let note: MyNote = new MyNote(this.app, file, this.vika, this.settings);
         let res = await note.getRecord();
         if(!res) {
-            new Notice(`${file.name} uid not found`);
+            new Notice(`${file.name} vikaLink not found`);
         }
         else if (res.success) {
             new Notice(`Download ${file.name} success`);
@@ -113,46 +123,137 @@ class MyObsidian {
         return res;
     }
 
-    async updateRecordInThisFolder() {
-        let file: TFile|null = this.app.workspace.getActiveFile();
-        if (!file) {
-            return null;
-        }
-        const files = file.parent.children;
+    async createRecordFromFiles(files: Array<TAbstractFile>, datasheetId: string) {
         for (let file of files) {
-            if(file instanceof TFile && file.extension == "md") {
+            if(file instanceof TFile && file.extension === "md") {
                 let note: MyNote = new MyNote(this.app, file, this.vika, this.settings);
-                let res = await note.updateRecord();
-                if(res.success) {
-                    new Notice(`Update ${file.name} success`);
-                } 
-                else if (res.code == 429) {
+                let res = await note.createRecord(datasheetId);
+                if(!res.success){
+                    new Notice(`${file.name}: ${res.message}, create failed`);
+                }
+                else if(res.code == 429){
                     files.push(file);
                 }
+                else {
+                    new Notice(`${file.name} create success`);
+                }
+            }
+        }
+    }
+
+    async updateRecordFromFiles(files: Array<TAbstractFile>) {
+        for (let file of files) {
+            if(file instanceof TFile && file.extension === "md") {
+                let note: MyNote = new MyNote(this.app, file, this.vika, this.settings);
+                let res = await note.updateRecord();
+                if(!res || !res.success) {
+                    new Notice(`${file.name}: ${res?.message}, update failed`);
+                }
+                else {
+                    new Notice(`Update ${file.name} success`);
+                } 
+            }
+        }
+    }
+
+    async updateOrCreateRecordFromFiles(files: Array<TAbstractFile>, datasheetId: string) {
+        for (let file of files) {
+            if(file instanceof TFile && file.extension === "md") {
+                let note: MyNote = new MyNote(this.app, file, this.vika, this.settings);
+                let res = await note.updateRecord();
+                if(!res || res.code == 429 || res.code == 400) {
+                    if (res?.code == 429){
+                        files.push(file);
+                        continue;
+                    }
+                    res = await note.createRecord(datasheetId);
+                    if(!res.success){
+                        new Notice(`${file.name}: ${res.message}, create failed`);
+                    }
+                    else if(res.code == 429){
+                        files.push(file);
+                    }
+                    else {
+                        new Notice(`${file.name} create success`);
+                    }
+                }
+                else if(res.success) {
+                    new Notice(`Update ${file.name} success`);
+                } 
                 else {
                     new Notice(`${file.name}: ${res.message}, update failed`);
                 }
             }
         }
-        new Notice(`Update Note in Folder: ${file.parent.path} finished`);
     }
+
+    async selecctUpdataMethod() {
+        const text_items = ["只进行更新（推荐）", "更新或创建", "全部重新创建"];
+        const items = [1, 2, 3];
+        const selector = await generate_suggester()(text_items, items, false, "选择操作类型", 5); 
+        return selector;
+    }
+
+    async updateRecordInThisFolder() {
+        let file: TFile|null = this.app.workspace.getActiveFile();
+        if (!file) {
+            return;
+        }
+        const files = file.parent.children;
+        const selector = await this.selecctUpdataMethod();
+        switch(selector) {
+            case 1:
+                await this.updateRecordFromFiles(files);
+                break;
+            case 2:
+                const datasheetId = await this.vika.selectDatasheet()
+                if(!datasheetId) {
+                    return;
+                }
+                await this.updateOrCreateRecordFromFiles(files, datasheetId);
+                break;
+            case 3:
+                const datasheetId2 = await this.vika.selectDatasheet()
+                if(!datasheetId2) {
+                    return;
+                }
+                await this.createRecordFromFiles(files, datasheetId2);
+                break;
+        }
+        new Notice(`Update Note in Folder: ${file.parent.path} finished`);
+    }   
+
 
     async updateAllRecord() {
         let files = this.vault.getMarkdownFiles();
-        for (let file of files) {
-            let note: MyNote = new MyNote(this.app, file, this.vika, this.settings);
-            let res = await note.updateRecord();
-            if(res.success) {
-                new Notice(`Update ${file.name} success`);
-            }
-            else if (res.code == 429) {
-                files.push(file);
-            } 
-            else {
-                new Notice(`${file.name}: ${res.message}, update failed`);
-            }   
+        const selector = await this.selecctUpdataMethod();
+        switch(selector) {
+            case 1:
+                await this.updateRecordFromFiles(files);
+                break;
+            case 2:
+                const datasheetId = await this.vika.selectDatasheet()
+                if(!datasheetId) {
+                    return;
+                }
+                await this.updateOrCreateRecordFromFiles(files, datasheetId);
+                break;
+            case 3:
+                const datasheetId2 = await this.vika.selectDatasheet()
+                if(!datasheetId2) {
+                    return;
+                }
+                await this.createRecordFromFiles(files, datasheetId2);
+                break;
         }
         new Notice(`Update Note in Vault: ${this.app.vault.getName()} finished`);
+    }
+
+    async selectRecoverMethod() {
+        const text_items = ["下载新笔记", "全部下载", "覆盖已有笔记"];
+        const items = [1, 2, 3];
+        const selector = await generate_suggester()(text_items, items, false, "选择操作类型", 5);
+        return selector;
     }
 
     async getRecordInThisFolder(){
@@ -161,8 +262,12 @@ class MyObsidian {
             return null;
         }
         const folder = file.parent.path;
+        const datasheetId = await this.vika.selectDatasheet()
+        if(!datasheetId) {
+            return;
+        }
         let note: MyNote = new MyNote(this.app, file, this.vika, this.settings);
-        let res = await note.getRecordInFolder(folder);
+        let res = await note.getRecordInFolder(folder, datasheetId);
         if(res.success){
             new Notice(`${folder}: ${res.message} success`);
         }
@@ -188,17 +293,33 @@ class MyNote {
     unresolvedOutLinks: Array<string>;
     obsidianURI: string;
     uid: string | undefined;
+    dstId: string | undefined;
+    viwId: string | undefined;
     vikaLink: string | undefined;
     vault: string;
     id: string;
     createTime: string;
     updateTime: string;
-    settings: any;
+    settings: VikaPluginSettings;
     constructor(app: App, file: TFile, vika: MyVika, settings: any) {
         this.app = app;
         this.file = file;
         this.vika = vika;
         this.settings = settings;
+    }
+
+    parseVikaLink(vikaLink:string | undefined) {
+        if(!vikaLink) {
+            return [undefined, undefined, undefined];
+        }
+        let infoList = vikaLink.split("/");
+        let recordId = infoList.pop();
+        let viewId = infoList.pop();
+        let dstId = infoList.pop();
+        if(recordId?.startsWith("rec") && viewId?.startsWith("viw") && dstId?.startsWith("dst")){
+            return [dstId, viewId, recordId];
+        }
+        return [undefined, undefined, undefined];
     }
 
     async updateInfo(){
@@ -212,21 +333,19 @@ class MyNote {
         this.tags = Array.from(new Set(this.tags));
         this.title = file.basename;
         this.folder = file.parent.path;
-        const vaultName = encodeURI(file.vault.getName());
-        let basicURL:string = `obsidian://open?vault=${vaultName}&file=${file.path}`; 
-        let advancedURL:string = `obsidian://advanced-uri?vault=${vaultName}&uid=`;
-        this.uid = this.frontmatter?.["uid"];
-        this.obsidianURI = this.uid? advancedURL + this.uid: basicURL;
-        this.vikaLink = this.frontmatter?.["vikaLink"];
         this.vault = file.vault.getName();
+        let basicURL:string = `obsidian://open?vault=${this.vault}&file=${file.path}`; 
+        this.vikaLink = this.frontmatter?.["vikaLink"];
+        [this.dstId, this.viwId, this.uid] = this.parseVikaLink(this.vikaLink);
+        this.obsidianURI = encodeURI(basicURL);
         let ctime = moment(new Date(file.stat.ctime));
-        let mtime = moment(new Date(file.stat.mtime));
+        let mtime = moment(new Date());
         this.createTime = ctime.format("YYYY-MM-DD HH:mm");
         this.updateTime = mtime.format("YYYY-MM-DD HH:mm");
         this.id = ctime.format("YYYYMMDDHHMMSS");
         this.getLinks();
 
-        let update = this.settings.updateField;
+        let update = this.settings.datasheetList.find((item) => item.id == this.dstId)?.updateField || {};
         update = this.getCustomFieldsFromFrontMatter(update, this.frontmatter);
 
         this.content = await this.app.vault.read(this.file);
@@ -273,8 +392,7 @@ class MyNote {
             let value = fields[key];
             data[key] = value || "";
         }
-        data["uid"] = recordId;
-        data["vikaLink"] = this.vika.getURL(data["uid"]);
+        data["vikaLink"] = this.dstId? this.vika.getURL(recordId, this.dstId) || "" : "";
         data["tags"] = fields["Tags"] || [""];
         data["aliases"] = fields["Aliases"] || [""];
         this.AddQuotationInFrontMatter(data);
@@ -293,11 +411,15 @@ class MyNote {
         }
     }
 
-    async createRecord() {
+    async createRecord(datasheetId: string) {
         const msg = await this.updateInfo();
-        const record = await this.vika.createRecord(msg)
-        if(!record.success)
-            console.log(msg);
+        
+        const record = await this.vika.createRecord(msg, datasheetId)
+        this.dstId = datasheetId;
+        if(!record.success){
+            console.log(msg, datasheetId);
+            return record
+        }
         this.recoverFrontMatterFromRecord(record);
         return record;
     }
@@ -305,70 +427,68 @@ class MyNote {
     async updateRecord() {
         const msg = await this.updateInfo();
        
-        if(this.uid){
-            const record = await this.vika.updateRecord(this.uid, msg)
-            if(!record.success)
+        if(this.uid && this.dstId){
+            const record = await this.vika.updateRecord(this.uid, msg, this.dstId);
+            if(!record.success){
                 console.log(msg, this.uid);
+                return record
+            }
             this.recoverFrontMatterFromRecord(record);
             return record;
-        }
-        else{
-            return await this.createRecord();
         }
     }
 
     async deleteRecord() {
         const msg = await this.updateInfo();
-        if(this.uid){
-            const record = await this.vika.deleteRecord(this.uid)
+        if(this.uid && this.dstId){
+            const record = await this.vika.deleteRecord(this.uid, this.dstId);
             if(!record.success){
                 console.log(this.uid);
-                return record;    
             }
-            this.app.vault.trash(this.file, false);
+            else{
+                this.app.vault.trash(this.file, false);
+            }
             return record;
-        }
-        else{
-            this.app.vault.trash(this.file, false);
-            return null;
         }
     }
 
     async getRecord(){
         const msg = await this.updateInfo();
-        if(!this.uid){
-            return null;
+        if(!this.uid || !this.dstId){
+            return;
         }
-
-        const record = await this.vika.getRecord(this.uid);
+        const record = await this.vika.getRecord(this.uid, this.dstId);
         await this.recoverFullContentFromRecord(record);
         return record;
     }
 
-    async getRecordInFolder(folder: string){
+    async getRecordInFolder(folder: string, datasheetId: string){
         const msg = await this.updateInfo();
-        const record = await this.vika.getRecordInFolder(folder);
+        const record = await this.vika.getRecordInFolder(folder, datasheetId);
+        if(!record.success){
+            console.log(msg, datasheetId);
+            return record
+        }
+        this.dstId = datasheetId;
         await this.recoverFullContentFromRecord(record);
         return record;
     }
 
     async recoverFullContentFromRecord(record: IHttpResponse<ICreateRecordsResponseData> | undefined){
         if(!record || !record.success)
-            return null;
+            return;
         for (const i of record.data.records){
             const fields = i.fields;
             const recordId = i.recordId;
-
-            let fm_dict = this.getFrontMatterFromFields(this.settings.recoverField, fields, recordId);
+            const recoverField = this.settings.datasheetList.find((item) => item.id == this.dstId)?.recoverField || {};
+            let fm_dict = this.getFrontMatterFromFields(recoverField, fields, recordId);
             let fm_text = this.dumpsFrontMatter(fm_dict);
             let full_content = fm_text + fields["Content"];
             let filePath = this.folder + "/" + fields["Title"] + ".md";
             
             await this.app.vault.adapter.write(filePath, full_content);
         }
-
         this.updateInfo();
-        return null;
     }
 
     parseFrontMatterDict(fm: FrontMatterCache|undefined){
@@ -376,7 +496,7 @@ class MyNote {
         if (!fm)
             return fm_dict;
         for(let [key, value] of Object.entries(fm).filter(([key, value]) =>
-         !["position", "Tags", "tags", "Tag", "tag", "Aliases", "aliases", "Alias", "alias", "uid", "vikaLink"].includes(key)))
+         !["position", "Tags", "tags", "Tag", "tag", "Aliases", "aliases", "Alias", "alias", "vikaLink"].includes(key)))
         {
             if (value instanceof Array) {
                 let arrayData = parseFrontMatterStringArray(fm, key) || "";
@@ -390,18 +510,19 @@ class MyNote {
 
     recoverFrontMatterFromRecord(record: IHttpResponse<ICreateRecordsResponseData> | undefined){
         if(!record || !record.success)
-            return null;
+            return;
         let fm_dict = this.parseFrontMatterDict(this.frontmatter);
         
         let fields = record.data.records[0].fields;
         let recordId = record.data.records[0].recordId;
-        fm_dict = Object.assign(fm_dict, this.getFrontMatterFromFields(this.settings.recoverField, fields, recordId));
+        const recoverField = this.settings.datasheetList.find((item) => item.id == this.dstId)?.updateField || {};
+        fm_dict = Object.assign(fm_dict, this.getFrontMatterFromFields(recoverField, fields, recordId));
         let fm_text = this.dumpsFrontMatter(fm_dict);
         let full_content = fm_text + this.content;
         this.app.vault.modify(this.file, full_content);
         
         this.updateInfo();
-        return null;
+        return;
     }
 
     // 必须在FrontMatter获取后调用
@@ -426,7 +547,7 @@ class MyNote {
 	}
     
     getBackLinks(metadataCache:MetadataCache, path:string) {
-		let links =  Object.entries(metadataCache.resolvedLinks).filter(([k, v]) => Object.keys(v).length).filter(item => item[1].hasOwnProperty(path)).map(item => { return item[0].split("/").pop()?.replace(".md", "")}).filter(item=>item);
+		let links =  Object.entries(metadataCache.resolvedLinks).filter(([k, v]) => Object.keys(v).length).filter(item => item[1].hasOwnProperty(path)).map(item => { return item[0].split("/").pop()?.replace(".md", "")});
         return  links.filter(item => item)
     }
 
