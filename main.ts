@@ -2,7 +2,6 @@ import { App, Editor, MarkdownView, Notice, Plugin, PluginSettingTab, Setting } 
 import { MyVika, VikaPluginSettings } from "utils/vika";
 import { MyNote, MyObsidian } from "utils/obsidian";
 
-// Remember to rename these classes and interfaces!
 
 const DEFAULT_CUSTOM_FIELD = {
 	id: "",
@@ -82,7 +81,7 @@ export default class VikaSyncPlugin extends Plugin {
 
 	async loadSettings() {
 		this.settings = Object.assign({}, await this.loadData());
-		this.vika = new MyVika(this.settings.token);
+		this.vika = new MyVika(this.settings);
 		this.ob = new MyObsidian(this.app, this.vika, this.settings);
 	}
 
@@ -99,10 +98,52 @@ export default class VikaSyncPlugin extends Plugin {
 
 class SettingTab extends PluginSettingTab {
 	plugin: VikaSyncPlugin;
+	settingsEl: Setting[];
 
 	constructor(app: App, plugin: VikaSyncPlugin) {
 		super(app, plugin);
 		this.plugin = plugin;
+		this.settingsEl = [];
+	}
+
+
+	reloadSetting(datasheet: any[], containerEl: HTMLElement) {
+		this.settingsEl.forEach((setting) => {
+			setting.settingEl.remove();
+		});
+
+		for(let dst of datasheet){
+			this.settingsEl.push(new Setting(containerEl)
+					.setName(dst.name)
+					.addTextArea(text => text
+						.setPlaceholder("")
+						.setValue(JSON.stringify(dst.updateField))
+						.onChange(async (value) => {
+							try {								
+								dst.updateField = JSON.parse(value);
+								text.inputEl.style.border = "1px solid green";
+								await this.plugin.saveSettings();
+							} catch (e) {
+								text.inputEl.style.border = "1px solid red";
+							}
+						}
+					)
+				)
+				.addTextArea(text => text
+					.setPlaceholder("")
+					.setValue(JSON.stringify(dst.recoverField))
+					.onChange(async (value) => {
+						try{								
+							dst.recoverField = JSON.parse(value);
+							text.inputEl.style.border = "1px solid green";
+							await this.plugin.saveSettings();
+						} catch (e) {
+							text.inputEl.style.border = "1px solid red";
+						}
+					}
+				)	
+			))
+		}
 	}
 
 	display(): void {
@@ -110,10 +151,8 @@ class SettingTab extends PluginSettingTab {
 
 		containerEl.empty();
 
-		containerEl.createEl('h2', {text: 'Vika Sync Settings'});
-
-		containerEl.createEl('h3', {text: 'Vika Token'});
-
+		containerEl.createEl('h1', {text: 'Vika Sync Settings'});
+		
 		new Setting(containerEl)
 			.setName('Token')
 			.setDesc("从Vika的API设置中获取")
@@ -123,62 +162,17 @@ class SettingTab extends PluginSettingTab {
 				.onChange(async (value) => {
 					this.plugin.settings.token = value;
 					await this.plugin.saveSettings();
-				}));
-		
-		new Setting(containerEl)
-			.addButton(cb => {this.plugin.vika.getAllDatasheetInfo().then(
-				() => {
-					let nameList = this.plugin.vika.datasheetList.map((item) => item.name);
-					let idList = this.plugin.vika.datasheetList.map((item) => item.id);
-					let datasheetList = this.plugin.settings.datasheetList 
-					let tmpList = [];
-					for(let i = 0; i < nameList.length; i++){
-						let tmp = datasheetList.find((item) => item.id == idList[i]);
-						if(!tmp){
-							tmp = DEFAULT_CUSTOM_FIELD;
-						}
-						tmp.id = idList[i];
-						tmp.name = nameList[i];
-						tmpList.push(tmp);
-					}
-					this.plugin.settings.datasheetList = tmpList;
-				}
-			).then(() => {
-				containerEl.createEl('h3', {text: 'Datasheet Settings'});
-				for(let dst of this.plugin.settings.datasheetList){
-					containerEl.createEl('h4', {text: dst.name});
-					new Setting(containerEl)
-						.setName('Update Field')
-						.setDesc("自定义更新字段与默认值")
-						.addTextArea(text => text
-							.setPlaceholder("")
-							.setValue(JSON.stringify(dst.updateField))
-							.onChange(async (value) => {
-								try{								
-									dst.updateField = JSON.parse(value);
-									text.inputEl.style.border = "1px solid green";
-									await this.plugin.saveSettings();
-								} catch (e) {
-									text.inputEl.style.border = "1px solid red";
-								}
-
-							}));
-					new Setting(containerEl)
-						.setName('Recover Field')
-						.setDesc("自定义下载字段")
-						.addTextArea(text => text
-							.setPlaceholder("")
-							.setValue(JSON.stringify(dst.recoverField))
-							.onChange(async (value) => {
-								try{								
-									dst.recoverField = JSON.parse(value);
-									text.inputEl.style.border = "1px solid green";
-									await this.plugin.saveSettings();
-								} catch (e) {
-									text.inputEl.style.border = "1px solid red";
-								}
-							}));
-			}})
-			.catch(e => new Notice(e))});
+				}))
+			.addButton(async (cb) => {
+				cb.setButtonText("Refresh")
+				cb.onClick(async () => {
+					await this.plugin.vika.getAllDatasheetInfo();
+					this.plugin.settings.datasheetList = this.plugin.vika.datasheetList;
+					this.reloadSetting(this.plugin.settings.datasheetList, containerEl);
+				})
+			}
+		);
+		containerEl.createEl('h1', {text: 'Datasheet List'});
+		this.reloadSetting(this.plugin.settings.datasheetList, containerEl);
 	}
 }
