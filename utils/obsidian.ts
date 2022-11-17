@@ -59,7 +59,7 @@ class MyObsidian {
             new Notice(`Create ${file.name} success`);
         }
         else {
-            new Notice(`${file.name}: ${res.message}`);
+            new Notice(`${file.name}: ${res.message}, create failed`);
         }
         return res;
     }
@@ -78,7 +78,7 @@ class MyObsidian {
             new Notice(`Update ${file.name} success`);
         }
         else {
-            new Notice(`${file.name}: ${res.message}`);
+            new Notice(`${file.name}: ${res.message}, update failed`);
         }
         return res;
     }
@@ -161,7 +161,7 @@ class MyObsidian {
             if(file instanceof TFile && file.extension === "md") {
                 let note: MyNote = new MyNote(this.app, file, this.vika, this.settings);
                 let res = await note.updateRecord();
-                if(!res || !res.success) {
+                if(!res || res.code == 429 || res.code == 400) {
                     if (res?.code == 429){
                         files.push(file);
                         continue;
@@ -177,9 +177,12 @@ class MyObsidian {
                         new Notice(`${file.name} create success`);
                     }
                 }
-                else {
+                else if(res.success) {
                     new Notice(`Update ${file.name} success`);
                 } 
+                else {
+                    new Notice(`${file.name}: ${res.message}, update failed`);
+                }
             }
         }
     }
@@ -200,21 +203,21 @@ class MyObsidian {
         const selector = await this.selecctUpdataMethod();
         switch(selector) {
             case 1:
-                this.updateRecordFromFiles(files);
+                await this.updateRecordFromFiles(files);
                 break;
             case 2:
                 const datasheetId = await this.vika.selectDatasheet()
                 if(!datasheetId) {
                     return;
                 }
-                this.updateOrCreateRecordFromFiles(files, datasheetId);
+                await this.updateOrCreateRecordFromFiles(files, datasheetId);
                 break;
             case 3:
                 const datasheetId2 = await this.vika.selectDatasheet()
                 if(!datasheetId2) {
                     return;
                 }
-                this.createRecordFromFiles(files, datasheetId2);
+                await this.createRecordFromFiles(files, datasheetId2);
                 break;
         }
         new Notice(`Update Note in Folder: ${file.parent.path} finished`);
@@ -226,21 +229,21 @@ class MyObsidian {
         const selector = await this.selecctUpdataMethod();
         switch(selector) {
             case 1:
-                this.updateRecordFromFiles(files);
+                await this.updateRecordFromFiles(files);
                 break;
             case 2:
                 const datasheetId = await this.vika.selectDatasheet()
                 if(!datasheetId) {
                     return;
                 }
-                this.updateOrCreateRecordFromFiles(files, datasheetId);
+                await this.updateOrCreateRecordFromFiles(files, datasheetId);
                 break;
             case 3:
                 const datasheetId2 = await this.vika.selectDatasheet()
                 if(!datasheetId2) {
                     return;
                 }
-                this.createRecordFromFiles(files, datasheetId2);
+                await this.createRecordFromFiles(files, datasheetId2);
                 break;
         }
         new Notice(`Update Note in Vault: ${this.app.vault.getName()} finished`);
@@ -336,7 +339,7 @@ class MyNote {
         [this.dstId, this.viwId, this.uid] = this.parseVikaLink(this.vikaLink);
         this.obsidianURI = encodeURI(basicURL);
         let ctime = moment(new Date(file.stat.ctime));
-        let mtime = moment(new Date(file.stat.mtime));
+        let mtime = moment(new Date());
         this.createTime = ctime.format("YYYY-MM-DD HH:mm");
         this.updateTime = mtime.format("YYYY-MM-DD HH:mm");
         this.id = ctime.format("YYYYMMDDHHMMSS");
@@ -414,7 +417,7 @@ class MyNote {
         const record = await this.vika.createRecord(msg, datasheetId)
         this.dstId = datasheetId;
         if(!record.success){
-            console.log(msg);
+            console.log(msg, datasheetId);
             return record
         }
         this.recoverFrontMatterFromRecord(record);
@@ -463,9 +466,10 @@ class MyNote {
         const msg = await this.updateInfo();
         const record = await this.vika.getRecordInFolder(folder, datasheetId);
         if(!record.success){
-            console.log(msg);
+            console.log(msg, datasheetId);
             return record
         }
+        this.dstId = datasheetId;
         await this.recoverFullContentFromRecord(record);
         return record;
     }
@@ -506,7 +510,7 @@ class MyNote {
 
     recoverFrontMatterFromRecord(record: IHttpResponse<ICreateRecordsResponseData> | undefined){
         if(!record || !record.success)
-            return null;
+            return;
         let fm_dict = this.parseFrontMatterDict(this.frontmatter);
         
         let fields = record.data.records[0].fields;
@@ -518,7 +522,7 @@ class MyNote {
         this.app.vault.modify(this.file, full_content);
         
         this.updateInfo();
-        return null;
+        return;
     }
 
     // 必须在FrontMatter获取后调用
